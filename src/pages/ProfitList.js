@@ -24,6 +24,7 @@ const ProfitList = () => {
 const [showProfit, setShowProfit] = useState(false);
 const [editCommission, setEditCommission] = useState({});
 const [isSaving, setIsSaving] = useState(false);
+  const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 
 const handleSaveCommission = async (item) => {
@@ -39,10 +40,11 @@ const handleSaveCommission = async (item) => {
     }
 
     // Send to new endpoint that updates commission on Item
-    await axios.put(`/api/items/${item.itemId}/commission`, {
-      commission: newCommission,
-      isPercent: isPercent
-    });
+await axios.put(`${BASE_URL}/items/${item.itemId}/commission`, {
+  commission: newCommission,
+  isPercent: isPercent
+});
+
 
     fetchProfits(); // Refresh profit list
   } catch (err) {
@@ -60,7 +62,7 @@ const handleSaveCommission = async (item) => {
       const params = {};
       if (fromDate) params.from = fromDate.toISOString().split('T')[0];
       if (toDate) params.to = toDate.toISOString().split('T')[0];
-      const res = await axios.get('/api/sales/profit/all', { params });
+const res = await axios.get(`${BASE_URL}/sales/profit/all`, { params });
       setProfits(res.data);
     } catch (err) {
       console.error(err);

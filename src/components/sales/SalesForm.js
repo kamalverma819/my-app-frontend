@@ -44,14 +44,15 @@ const SalesForm = ({ onSaved }) => {
   const [poNo, setPoNo] = useState('');
   const [poDate, setPoDate] = useState(new Date().toISOString().split('T')[0]);
 
+  const BASE_URL = process.env.REACT_APP_API_BASE_URL;
   useEffect(() => {
-    axios.get('/api/customers').then(res => setCustomers(res.data));
-    axios.get('/api/items').then(res => setItemOptions(res.data));
-    axios.get('/api/sales').then(res => {
-      const count = res.data.length + 1;
-      const num = count.toString().padStart(3, '0');
-      setInvoiceNo(`NLTE/2024-25/${num}`);
-    });
+axios.get(`${BASE_URL}/customers`).then(res => setCustomers(res.data));
+axios.get(`${BASE_URL}/items`).then(res => setItemOptions(res.data));
+axios.get(`${BASE_URL}/sales`).then(res => {
+  const count = res.data.length + 1;
+  const num = count.toString().padStart(3, '0');
+  setInvoiceNo(`NLTE/2024-25/${num}`);
+});
   }, []);
 
   function convertNumberToWords(amount) {
@@ -206,7 +207,7 @@ const SalesForm = ({ onSaved }) => {
         poDate,
         status: "under-process"
       };
-      await axios.post('/api/sales', payload);
+     await axios.post(`${BASE_URL}/sales`, payload);
       alert('Saved successfully');
       onSaved();
     } catch (err) {

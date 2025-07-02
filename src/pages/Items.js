@@ -19,13 +19,15 @@ const Items = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [items, setItems] = useState([]);
+  const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
-  const fetchItems = () => {
-    axios
-      .get("http://localhost:8080/api/items")
-      .then((res) => setItems(res.data))
-      .catch((err) => console.error("Fetch error", err));
-  };
+const fetchItems = () => {
+  axios
+    .get(`${BASE_URL}/items`)
+    .then((res) => setItems(res.data))
+    .catch((err) => console.error("Fetch error", err));
+};
+
 
   useEffect(() => {
     fetchItems();

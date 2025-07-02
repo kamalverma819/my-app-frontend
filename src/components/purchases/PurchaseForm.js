@@ -25,14 +25,15 @@ const PurchaseForm = () => {
     gstRate: 18
   });
   const [freight, setFreight] = useState(0);
+  const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [vendorsRes, itemsRes] = await Promise.all([
-          axios.get('/api/vendors'),
-          axios.get('/api/items')
-        ]);
+const [vendorsRes, itemsRes] = await Promise.all([
+  axios.get(`${BASE_URL}/vendors`),
+  axios.get(`${BASE_URL}/items`)
+]);
         setVendors(vendorsRes.data);
         setItems(itemsRes.data);
       } catch (err) {
@@ -137,7 +138,7 @@ const PurchaseForm = () => {
     };
 
     try {
-      await axios.post('/api/purchases', payload);
+await axios.post(`${BASE_URL}/purchases`, payload);
       alert('Purchase saved successfully');
       setInvoiceNo('');
       setInvoiceDate('');

@@ -45,13 +45,13 @@ const Customers = () => {
   const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
 
 
-
+const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
   const fetchCustomers = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('/api/customers');
-      setCustomers(res.data);
+const res = await axios.get(`${BASE_URL}/customers`); 
+     setCustomers(res.data);
     } catch (err) {
       showSnackbar('Failed to fetch customers', 'error');
       console.error(err);
@@ -105,10 +105,10 @@ const Customers = () => {
 
     try {
       if (editingId) {
-        await axios.put(`/api/customers/${editingId}`, formData);
+await axios.put(`${process.env.REACT_APP_API_BASE_URL}/customers/${editingId}`, formData);
         showSnackbar('Customer updated successfully', 'success');
       } else {
-        await axios.post('/api/customers', formData);
+await axios.post(`${process.env.REACT_APP_API_BASE_URL}/customers`, formData);
         showSnackbar('Customer added successfully', 'success');
       }
       setOpenModal(false);
@@ -126,7 +126,7 @@ const Customers = () => {
 
   const handleDelete = async () => {
     try {
-      await axios.delete(`/api/customers/${deleteId}`);
+await axios.delete(`${BASE_URL}/customers/${deleteId}`);
       showSnackbar('Customer deleted successfully', 'success');
       fetchCustomers();
     } catch (err) {

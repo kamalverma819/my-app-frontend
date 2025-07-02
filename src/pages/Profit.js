@@ -15,6 +15,7 @@ const Profit = ({ itemId, open, onClose }) => {
   const [itemDetails, setItemDetails] = useState(null);
   const [fromDate, setFromDate] = useState(null);
   const [toDate, setToDate] = useState(null);
+  const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
   const fetchProfit = async () => {
     try {
@@ -22,10 +23,11 @@ const Profit = ({ itemId, open, onClose }) => {
       if (fromDate) params.from = fromDate.toISOString().split('T')[0];
       if (toDate) params.to = toDate.toISOString().split('T')[0];
 
-      const [profitRes, itemRes] = await Promise.all([
-        axios.get(`/api/sales/profit/${itemId}`, { params }),
-        axios.get(`/api/items/${itemId}`)
-      ]);
+const [profitRes, itemRes] = await Promise.all([
+  axios.get(`${BASE_URL}/sales/profit/${itemId}`, { params }),
+  axios.get(`${BASE_URL}/items/${itemId}`)
+]);
+
       setProfitData(profitRes.data);
       setItemDetails(itemRes.data);
     } catch (error) {

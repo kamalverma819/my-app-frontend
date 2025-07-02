@@ -19,8 +19,9 @@ const Dashboard = () => {
     totalItems: 0,
   });
 
+  const BASE_URL = process.env.REACT_APP_API_BASE_URL;
   useEffect(() => {
-    axios.get("/api/dashboard/stats")
+  axios.get(`${BASE_URL}/dashboard/stats`)
       .then(res => setStats(res.data))
       .catch(err => console.error("Dashboard fetch error", err));
   }, []);

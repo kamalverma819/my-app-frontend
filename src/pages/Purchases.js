@@ -28,10 +28,12 @@ const Purchases = () => {
   const [toDate, setToDate] = useState('');
   const [downloadAll, setDownloadAll] = useState(false);
   const [viewFreight, setViewFreight] = useState(0);
+  const BASE_URL = process.env.REACT_APP_API_BASE_URL;
+
 
   const fetchPurchases = async () => {
     try {
-      const res = await axios.get('/api/purchases');
+  const res = await axios.get(`${BASE_URL}/purchases`);
       setPurchases(res.data);
     } catch (err) {
       console.error('Error fetching purchases:', err);

@@ -15,7 +15,10 @@ const ItemList = ({ items, searchTerm, onEdit, fetchItems }) => {
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this item?")) {
       try {
-        await axios.delete(`http://localhost:8080/api/items/${id}`);
+const BASE_URL = process.env.REACT_APP_API_BASE_URL;
+
+// Then use:
+await axios.delete(`${BASE_URL}/items/${id}`);
         fetchItems(); // Refresh after delete
       } catch (err) {
         console.error("Delete failed", err);

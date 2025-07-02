@@ -31,11 +31,13 @@ const ItemForm = ({ item, onClose, onSaved }) => {
 
   const handleSubmit = async () => {
     try {
-      if (item) {
-        await axios.put(`http://localhost:8080/api/items/${item.id}`, formData);
-      } else {
-        await axios.post("http://localhost:8080/api/items", formData);
-      }
+      const BASE_URL = process.env.REACT_APP_API_BASE_URL;
+
+if (item) {
+  await axios.put(`${BASE_URL}/items/${item.id}`, formData);
+} else {
+  await axios.post(`${BASE_URL}/items`, formData);
+}
       onSaved();
     } catch (err) {
       console.error("Save failed", err);

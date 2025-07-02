@@ -21,10 +21,12 @@ const Sales = () => {
   const [showForm, setShowForm] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewFreight, setViewFreight] = useState(0);
+  const BASE_URL = process.env.REACT_APP_API_BASE_URL;
+
 
   const fetchSales = async () => {
     try {
-      const res = await axios.get('/api/sales');
+const res = await axios.get(`${BASE_URL}/sales`);
       setSales(res.data);
     } catch (err) {
       console.error('Error fetching sales:', err);
@@ -43,7 +45,7 @@ const Sales = () => {
 
   const handleStatusChange = async (id, newStatus) => {
     try {
-      await axios.put(`/api/sales/${id}/status`, { status: newStatus });
+await axios.put(`${BASE_URL}/sales/${id}/status`, { status: newStatus });
       setSales((prevSales) =>
         prevSales.map(s => (s.id === id ? { ...s, status: newStatus } : s))
       );

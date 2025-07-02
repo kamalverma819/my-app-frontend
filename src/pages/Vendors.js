@@ -25,6 +25,7 @@ const Vendors = () => {
   const [selectedVendor, setSelectedVendor] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
+const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
   // Form state
   const [formData, setFormData] = useState({
@@ -50,7 +51,7 @@ const Vendors = () => {
   const fetchVendors = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('/api/vendors');
+const res = await axios.get(`${BASE_URL}/vendors`);
       setVendors(res.data);
     } catch (err) {
       showSnackbar('Failed to fetch vendors', 'error');
@@ -117,12 +118,12 @@ const Vendors = () => {
 
     try {
       if (editingId) {
-        await axios.put(`/api/vendors/${editingId}`, formData);
-        showSnackbar('Vendor updated successfully', 'success');
-      } else {
-        await axios.post('/api/vendors', formData);
-        showSnackbar('Vendor added successfully', 'success');
-      }
+    await axios.put(`${BASE_URL}/vendors/${editingId}`, formData);
+    showSnackbar('Vendor updated successfully', 'success');
+  } else {
+    await axios.post(`${BASE_URL}/vendors`, formData);
+    showSnackbar('Vendor added successfully', 'success');
+  }
       setOpenModal(false);
       fetchVendors();
     } catch (err) {
@@ -139,7 +140,7 @@ const Vendors = () => {
 
   const handleDelete = async () => {
     try {
-      await axios.delete(`/api/vendors/${deleteId}`);
+await axios.delete(`${BASE_URL}/vendors/${deleteId}`);
       showSnackbar('Vendor deleted successfully', 'success');
       fetchVendors();
     } catch (err) {
