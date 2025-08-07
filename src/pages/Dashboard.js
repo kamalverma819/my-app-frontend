@@ -20,6 +20,7 @@ const Dashboard = () => {
   });
 
   const BASE_URL = process.env.REACT_APP_API_BASE_URL;
+  console.log("BASE_URL",BASE_URL);
   useEffect(() => {
   axios.get(`${BASE_URL}/dashboard/stats`)
       .then(res => setStats(res.data))

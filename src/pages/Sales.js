@@ -7,6 +7,9 @@ import { Visibility as VisibilityIcon } from '@mui/icons-material';
 import axios from 'axios';
 import SalesForm from '../components/sales/SalesForm';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { Menu} from '@mui/material';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+
 
 const Sales = () => {
   const [sales, setSales] = useState([]);
@@ -22,6 +25,32 @@ const Sales = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewFreight, setViewFreight] = useState(0);
   const BASE_URL = process.env.REACT_APP_API_BASE_URL;
+  const [editSale, setEditSale] = useState(null);
+
+  const [anchorEls, setAnchorEls] = useState({});
+
+const handleMenuOpen = (event, index) => {
+  setAnchorEls((prev) => ({ ...prev, [index]: event.currentTarget }));
+};
+
+const handleMenuClose = (index) => {
+  setAnchorEls((prev) => ({ ...prev, [index]: null }));
+};
+
+const handleDownload = (sale) => {
+  console.log("Download", sale);
+  handleMenuClose(sale.id);
+};
+
+const handleEdit = (sale) => {
+  console.log("Edit:---", sale);
+  handleMenuClose(sale.id);
+};
+
+const handleDelete = (id) => {
+  console.log("Delete", id);
+  handleMenuClose(id);
+};
 
 
   const fetchSales = async () => {
@@ -148,14 +177,18 @@ await axios.put(`${BASE_URL}/sales/${id}/status`, { status: newStatus });
     </Stack>
 
     {/* Invoice Form */}
-    {showForm && (
-      <Box mb={4}>
-        <SalesForm onSaved={() => {
-          setShowForm(false);
-          fetchSales();
-        }} />
-      </Box>
-    )}
+{showForm && (
+  <Box mb={4}>
+    <SalesForm
+      editData={editSale}
+      onSaved={() => {
+        setShowForm(false);
+        setEditSale(null);
+        fetchSales(); // Refresh list
+      }}
+    />
+  </Box>
+)}
 
     {/* Sales Table */}
     <Paper elevation={3} sx={{ p: 2 }}>
@@ -176,6 +209,7 @@ await axios.put(`${BASE_URL}/sales/${id}/status`, { status: newStatus });
               <th>Total</th>
               <th>Items</th>
               <th>Status</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -231,6 +265,21 @@ await axios.put(`${BASE_URL}/sales/${id}/status`, { status: newStatus });
                         </Select>
                       </Box>
                     </td>
+                    <td className="text-center">
+<IconButton onClick={(e) => handleMenuOpen(e, idx)}>
+  <MoreVertIcon />
+</IconButton>
+<Menu
+  anchorEl={anchorEls[idx]}
+  open={Boolean(anchorEls[idx])}
+  onClose={() => handleMenuClose(idx)}
+>
+  <MenuItem onClick={() => handleDownload(sale)}>Download</MenuItem>
+  <MenuItem onClick={() => { console.log('Editing sale:', sale); setEditSale(sale); setShowForm(true); }}>Edit</MenuItem>
+  <MenuItem onClick={() => handleDelete(sale.id)}>Delete</MenuItem>
+</Menu>
+
+</td>
                   </tr>
                 );
               })

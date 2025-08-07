@@ -32,57 +32,93 @@ const COMPANY_INFO = {
   signatory: `For NEW LOTUS TEXTILE ELECTRONICS\nAuthorised signatory`
 };
 
-const SalesForm = ({ onSaved }) => {
-  const [invoiceNo, setInvoiceNo] = useState('');
-  const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
-  const [customer, setCustomer] = useState({ name: '', gstin: '' });
+const SalesForm = ({ onSaved, editData = null }) => {
+ const [invoiceNo, setInvoiceNo] = useState(editData?.invoiceNo || '');
+const [invoiceDate, setInvoiceDate] = useState(editData?.invoiceDate || new Date().toISOString().split('T')[0]);
+const [customer, setCustomer] = useState({name: editData?.customerName || '',gstin: editData?.gstin || ''});
   const [customers, setCustomers] = useState([]);
-  const [items, setItems] = useState([{ ...initialItem }]);
+const [items, setItems] = useState(editData?.items || [{ ...initialItem }]);
   const [itemOptions, setItemOptions] = useState([]);
   const [showDownloadOptions, setShowDownloadOptions] = useState(false);
-  const [freight, setFreight] = useState(0);
-  const [poNo, setPoNo] = useState('');
-  const [poDate, setPoDate] = useState(new Date().toISOString().split('T')[0]);
+const [freight, setFreight] = useState(editData?.freight || 0);
+  const [poNo, setPoNo] = useState(editData?.poNo || '');
+const [poDate, setPoDate] = useState(editData?.poDate || new Date().toISOString().split('T')[0]);
+
 
   const BASE_URL = process.env.REACT_APP_API_BASE_URL;
   useEffect(() => {
 axios.get(`${BASE_URL}/customers`).then(res => setCustomers(res.data));
-axios.get(`${BASE_URL}/items`).then(res => setItemOptions(res.data));
-axios.get(`${BASE_URL}/sales`).then(res => {
+axios.get(`${BASE_URL}/items`).then(res => {
+    const fetchedItems = res.data;
+    setItemOptions(fetchedItems);
+
+    // If editing, enrich each item with stock and other properties
+    if (editData?.items) {
+      const enrichedItems = editData.items.map(editedItem => {
+        const matched = fetchedItems.find(i => i.name === editedItem.name);
+        return {
+          ...editedItem,
+          itemId: matched?.id || editedItem.itemId || '',
+          hsnCode: matched?.hsnCode || editedItem.hsnCode || '',
+          price: editedItem.price,
+          discount: editedItem.discount || matched?.discount || 0,
+          gstRate: editedItem.gstRate || matched?.gstRate || 18,
+          originalQuantity: matched?.stock ?? 0, // ✅ important line
+        };
+      });
+      setItems(enrichedItems);
+    }
+  });
+  axios.get(`${BASE_URL}/sales`).then(res => {
   const count = res.data.length + 1;
   const num = count.toString().padStart(3, '0');
-  setInvoiceNo(`NLTE/2024-25/${num}`);
 });
   }, []);
 
   function convertNumberToWords(amount) {
-    const ones = [
-      '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
-      'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
-      'Seventeen', 'Eighteen', 'Nineteen'
-    ];
-    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+  const ones = [
+    '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+    'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
+    'Seventeen', 'Eighteen', 'Nineteen'
+  ];
+  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
 
-    function numToWords(n) {
-      if (n < 20) return ones[n];
-      if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '');
-      if (n < 1000) return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' and ' + numToWords(n % 100) : '');
-      if (n < 100000) return numToWords(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 ? ' ' + numToWords(n % 1000) : '');
-      if (n < 10000000) return numToWords(Math.floor(n / 100000)) + ' Lakh' + (n % 100000 ? ' ' + numToWords(n % 100000) : '');
-      return numToWords(Math.floor(n / 10000000)) + ' Crore' + (n % 10000000 ? ' ' + numToWords(n % 10000000) : '');
+  function numToWords(n) {
+    // Ensure n is a number and finite
+    if (typeof n !== 'number' || !isFinite(n)) return '';
+    if (n === 0) return 'Zero';
+
+    if (n < 20) return ones[n];
+    if (n < 100) {
+      return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '');
     }
-
-    const rupees = Math.floor(amount);
-    const paise = Math.round((amount - rupees) * 100);
-
-    let result = 'Rupees ';
-    result += rupees === 0 ? 'Zero' : numToWords(rupees);
-    if (paise > 0) {
-      result += ' and ' + numToWords(paise) + ' Paise';
+    if (n < 1000) {
+      return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' and ' + numToWords(n % 100) : '');
     }
-    result += ' Only';
-    return result;
+    if (n < 100000) {
+      return numToWords(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 ? ' ' + numToWords(n % 1000) : '');
+    }
+    if (n < 10000000) {
+      return numToWords(Math.floor(n / 100000)) + ' Lakh' + (n % 100000 ? ' ' + numToWords(n % 100000) : '');
+    }
+    return numToWords(Math.floor(n / 10000000)) + ' Crore' + (n % 10000000 ? ' ' + numToWords(n % 10000000) : '');
   }
+
+  const rupees = Math.floor(amount);
+  const paise = Math.round((amount - rupees) * 100);
+
+  let result = 'Rupees ';
+  result += rupees === 0 ? 'Zero' : numToWords(rupees);
+  if (paise > 0) {
+    result += ' and ' + numToWords(paise) + ' Paise';
+  }
+  result += ' Only';
+
+  return result;
+}
+
+
+
 
   const getAvailableItemOptions = (currentIdx) => {
     const selectedNames = items
@@ -108,6 +144,7 @@ axios.get(`${BASE_URL}/sales`).then(res => {
         name: selectedItem?.name || value,
         hsnCode: selectedItem?.hsnCode || '',
         price: selectedItem?.sellingPrice || 0,
+        discount: selectedItem?.discount || 0,
         // gstRate: selectedItem?.gstRate || 0,
         gstRate: 18, // Default GST rate
         stock: selectedItem?.stock || 0
@@ -188,33 +225,39 @@ axios.get(`${BASE_URL}/sales`).then(res => {
   const gst = calculateGST();
 
 
-  const handleSave = async () => {
-    try {
-      const gstValues = calculateGST();
-      const payload = {
-        invoiceNo,
-        invoiceDate,
-        customerName: customer.name,
-        gstin: customer.gstin,
-        items,
-        subtotal: calculateSubtotal(),
-        cgst: gstValues.cgst,
-        sgst: gstValues.sgst,
-        igst: gstValues.igst,
-        freight,
-        total: calculateTotal(),
-        poNo,
-        poDate,
-        status: "under-process"
-      };
-     await axios.post(`${BASE_URL}/sales`, payload);
-      alert('Saved successfully');
-      onSaved();
-    } catch (err) {
-      console.error('Save error:', err);
-      alert('Failed to save invoice');
+const handleSave = async () => {
+  try {
+    const gstValues = calculateGST();
+    const payload = {
+      invoiceNo,
+      invoiceDate,
+      customerName: customer.name,
+      gstin: customer.gstin,
+      items,
+      subtotal: calculateSubtotal(),
+      cgst: gstValues.cgst,
+      sgst: gstValues.sgst,
+      igst: gstValues.igst,
+      freight,
+      total: calculateTotal(),
+      poNo,
+      poDate,
+      status: editData?.status || "under-process"
+    };
+
+    if (editData && editData.id) {
+      await axios.put(`${BASE_URL}/sales/${editData.id}`, payload);
+    } else {
+      await axios.post(`${BASE_URL}/sales`, payload);
     }
-  };
+
+    alert('Saved successfully');
+    onSaved();
+  } catch (err) {
+    console.error('Save error:', err);
+    alert('Failed to save invoice');
+  }
+};
 
 const handleDownloadPDF = () => {
   const element = document.getElementById('invoice-preview');
@@ -424,8 +467,9 @@ function amountInWords(amount) {
             />
             <TextField label="HSN" value={item.hsnCode} fullWidth disabled sx={{ flex: 1 }} />
             <TextField
-              label={`Qty (Stock: ${item.stock})`}
-              type="number"
+  label={`Qty (Stock: ${
+    (Number(item.stock) || 0) + (Number(item.originalQuantity) || 0)
+  })`}              type="text"
               value={item.quantity}
               onChange={e => handleItemChange(idx, 'quantity', e.target.value)}
               fullWidth
@@ -433,7 +477,7 @@ function amountInWords(amount) {
             />
             <TextField
               label="Price"
-              type="number"
+              type="text"
               value={item.price}
               onChange={e => handleItemChange(idx, 'price', e.target.value)}
               fullWidth
@@ -441,7 +485,7 @@ function amountInWords(amount) {
             />
             <TextField
               label="Discount (%)"
-              type="number"
+              type="text"
               value={item.discount}
               onChange={e => handleItemChange(idx, 'discount', e.target.value)}
               fullWidth
@@ -466,7 +510,7 @@ function amountInWords(amount) {
         {/* Freight */}
         <TextField
           label="Freight"
-          type="number"
+          type="text"
           value={freight}
           onChange={(e) => setFreight(parseFloat(e.target.value))}
           fullWidth
