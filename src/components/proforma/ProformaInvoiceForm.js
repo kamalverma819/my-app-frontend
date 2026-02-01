@@ -1,4 +1,4 @@
-// src/components/sales/SalesForm.js
+// src/components/proforma/ProformaInvoiceForm.js
 import React, { useState, useEffect } from 'react';
 import {
   Box, TextField, Typography, Button, Stack, IconButton, MenuItem, Dialog, DialogTitle, DialogContent, Autocomplete,
@@ -28,12 +28,12 @@ const COMPANY_INFO = {
     ifsc: "KKBK0005892",
     branchCode: "5892"
   },
-  declaration: `We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.`,
-  footer: `SUBJECT TO BHOPAL JURISDICTION\nThis is a Computer Generated Invoice`,
+  declaration: `We declare that this proforma invoice shows the actual price of the goods described and that all particulars are true and correct.`,
+  footer: `SUBJECT TO BHOPAL JURISDICTION\nThis is a Computer Generated Proforma Invoice`,
   signatory: `For NEW LOTUS TEXTILE ELECTRONICS\nAuthorised signatory`
 };
 
-const SalesForm = ({ onSaved, editData = null }) => {
+const ProformaInvoiceForm = ({ onSaved, editData = null }) => {
  const [invoiceNo, setInvoiceNo] = useState(editData?.invoiceNo || '');
 const [invoiceDate, setInvoiceDate] = useState(editData?.invoiceDate || new Date().toISOString().split('T')[0]);
 const [customer, setCustomer] = useState({name: editData?.customerName || '',gstin: editData?.gstin || ''});
@@ -42,8 +42,6 @@ const [items, setItems] = useState(editData?.items || [{ ...initialItem }]);
   const [itemOptions, setItemOptions] = useState([]);
   const [showDownloadOptions, setShowDownloadOptions] = useState(false);
 const [freight, setFreight] = useState(editData?.freight || 0);
-  const [poNo, setPoNo] = useState(editData?.poNo || '');
-const [poDate, setPoDate] = useState(editData?.poDate || new Date().toISOString().split('T')[0]);
 
 
   const BASE_URL = process.env.REACT_APP_API_BASE_URL;
@@ -70,7 +68,7 @@ axios.get(`${BASE_URL}/items`).then(res => {
       setItems(enrichedItems);
     }
   });
-  axios.get(`${BASE_URL}/sales`).then(res => {
+  axios.get(`${BASE_URL}/proforma-invoices`).then(res => {
   const count = res.data.length + 1;
   const num = count.toString().padStart(3, '0');
 });
@@ -139,25 +137,44 @@ axios.get(`${BASE_URL}/items`).then(res => {
 
     if (key === 'name') {
       const selectedItem = itemOptions.find(i => i.name === value);
-      updated[idx] = {
-        ...updated[idx],
-        itemId: selectedItem?.id || '',   // ✅ Add this line
-        name: selectedItem?.name || value,
-        hsnCode: selectedItem?.hsnCode || '',
-        price: selectedItem?.sellingPrice || 0,
-        discount: selectedItem?.discount || 0,
-        // gstRate: selectedItem?.gstRate || 0,
-        gstRate: 18, // Default GST rate
-        stock: selectedItem?.stock || 0
-      };
+      if (selectedItem) {
+        // Existing item selected from dropdown
+        updated[idx] = {
+          ...updated[idx],
+          itemId: selectedItem.id || '',
+          name: selectedItem.name || value,
+          hsnCode: selectedItem.hsnCode || '',
+          price: selectedItem.sellingPrice || 0,
+          discount: selectedItem.discount || 0,
+          gstRate: 18, // Default GST rate
+          stock: selectedItem.stock || 0
+        };
+      } else {
+        // New item typed or edited - allow custom name
+        updated[idx] = {
+          ...updated[idx],
+          itemId: '', // No itemId for new/custom items
+          name: value || '',
+          // Keep existing hsnCode, price, discount, gstRate if already set
+          hsnCode: updated[idx].hsnCode || '',
+          price: updated[idx].price || 0,
+          discount: updated[idx].discount || 0,
+          gstRate: updated[idx].gstRate || 18,
+          stock: 0 // No stock for custom items
+        };
+      }
     } else if (key === 'quantity') {
       const quantity = parseInt(value) || 0;
       const availableStock = updated[idx].stock;
-      if (quantity > availableStock) {
+      // Only check stock if it's an existing item (has stock > 0)
+      if (availableStock > 0 && quantity > availableStock) {
         alert(`Quantity exceeds available stock (${availableStock})`);
         return;
       }
       updated[idx].quantity = quantity;
+    } else if (key === 'hsnCode') {
+      // Allow editing HSN code
+      updated[idx].hsnCode = value || '';
     } else if (['price', 'gstRate', 'discount'].includes(key)) {
       updated[idx][key] = parseFloat(value) || 0;
     }
@@ -241,28 +258,26 @@ const handleSave = async () => {
       igst: gstValues.igst,
       freight,
       total: calculateTotal(),
-      poNo,
-      poDate,
       status: editData?.status || "under-process"
     };
 
     if (editData && editData.id) {
-      await axios.put(`${BASE_URL}/sales/${editData.id}`, payload);
+      await axios.put(`${BASE_URL}/proforma-invoices/${editData.id}`, payload);
     } else {
-      await axios.post(`${BASE_URL}/sales`, payload);
+      await axios.post(`${BASE_URL}/proforma-invoices`, payload);
     }
 
     alert('Saved successfully');
     onSaved();
   } catch (err) {
     console.error('Save error:', err);
-    alert('Failed to save invoice');
+    alert('Failed to save proforma invoice');
   }
 };
 
 const handleDownloadPDF = () => {
   if (!invoiceNo || items.length === 0) {
-    alert("Invoice content is empty or not rendered yet.");
+    alert("Proforma invoice content is empty or not rendered yet.");
     return;
   }
 
@@ -281,10 +296,10 @@ const handleDownloadPDF = () => {
     return y + (lines.length * fontSize * 0.4);
   };
 
-  // Title - INVOICE
+  // Title - PROFORMA INVOICE
   doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
-  doc.text('INVOICE', pageWidth / 2, yPos, { align: 'center' });
+  doc.text('PROFORMA INVOICE', pageWidth / 2, yPos, { align: 'left' });
   yPos += 8;
 
   // Company Header
@@ -310,16 +325,12 @@ const handleDownloadPDF = () => {
   
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Invoice No:  ${invoiceNo}`, leftColX, yPos);
+  doc.text(`PI No.:  ${invoiceNo}`, leftColX, yPos);
   yPos += 5;
   doc.text(`Date: ${formatDate(invoiceDate)}`, leftColX, yPos);
-  yPos += 5;
-  doc.text(`Buyers P.O. No.: ${poNo || '—'}`, leftColX, yPos);
-  yPos += 5;
-  doc.text(`P.O. Date: ${formatDate(poDate) || '—'}`, leftColX, yPos);
   
   // Bill To Section
-  const billToY = yPos - 15;
+  const billToY = yPos - 5;
   doc.setFont('helvetica', 'bold');
   doc.text('Bill To: ', rightColX, billToY, { align: 'right' });
   doc.setFont('helvetica', 'normal');
@@ -554,7 +565,7 @@ function amountInWords(amount) {
   wsData.push([]);
   
   // Invoice Info
-  wsData.push(['Invoice No:', invoiceNo, '', 'Date:', invoiceDate]);
+  wsData.push(['PI No.:', invoiceNo, '', 'Date:', invoiceDate]);
   wsData.push(['Customer:', customer.name, '', 'GSTIN:', customer.gstin || '']);
   wsData.push([]);
 
@@ -607,7 +618,7 @@ function amountInWords(amount) {
 
   // Export
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Invoice');
+  XLSX.utils.book_append_sheet(wb, ws, 'Proforma Invoice');
   XLSX.writeFile(wb, `${invoiceNo}.xlsx`);
   setShowDownloadOptions(false);
 };
@@ -619,14 +630,14 @@ function amountInWords(amount) {
       <Paper elevation={4} sx={{ p: 4, borderRadius: 3, backgroundColor: '#f9fafc' }}>
         {/* Header */}
         <Typography variant="h5" fontWeight="bold" gutterBottom>
-          Generate Invoice
+          Generate Proforma Invoice
         </Typography>
 
         {/* Invoice & Customer Info */}
         <Grid container spacing={3}>
           <Grid item xs={12} sm={6}>
             <TextField
-              label="Invoice No"
+              label="PI No."
               fullWidth
               value={invoiceNo}
               onChange={(e) => setInvoiceNo(e.target.value)}
@@ -635,7 +646,7 @@ function amountInWords(amount) {
 
           <Grid item xs={12} sm={6}>
             <TextField
-              label="Invoice Date"
+              label="PI Date"
               type="date"
               fullWidth
               value={invoiceDate}
@@ -666,26 +677,6 @@ function amountInWords(amount) {
           <Grid item xs={12} sm={6}>
             <TextField label="GSTIN" fullWidth value={customer.gstin} disabled />
           </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="Buyers P.O. No."
-              fullWidth
-              value={poNo}
-              onChange={(e) => setPoNo(e.target.value)}
-            />
-          </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <TextField
-              label="P.O. Date"
-              type="date"
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-              value={poDate}
-              onChange={(e) => setPoDate(e.target.value)}
-            />
-          </Grid>
         </Grid>
 
         {/* Items */}
@@ -702,19 +693,42 @@ function amountInWords(amount) {
             sx={{ mb: 2 }}
           >
             <Autocomplete
+              freeSolo
               options={getAvailableItemOptions(idx).map(i => i.name)}
-              value={item.name}
-              onChange={(e, value) => handleItemChange(idx, 'name', value)}
+              value={item.name || ''}
+              onChange={(e, value) => {
+                // Handle both selection from dropdown and typing new value
+                handleItemChange(idx, 'name', value || '');
+              }}
+              onInputChange={(e, newInputValue, reason) => {
+                // Handle typing - update immediately when user types
+                if (reason === 'input') {
+                  handleItemChange(idx, 'name', newInputValue || '');
+                }
+              }}
               renderInput={(params) => (
-                <TextField {...params} label="Item" fullWidth />
+                <TextField 
+                  {...params} 
+                  label="Item" 
+                  fullWidth 
+                  placeholder="Select from list or type to add new item"
+                />
               )}
               sx={{ flex: 2 }}
             />
-            <TextField label="HSN" value={item.hsnCode} fullWidth disabled sx={{ flex: 1 }} />
+            <TextField 
+              label="HSN" 
+              type="text"
+              value={item.hsnCode}
+              onChange={e => handleItemChange(idx, 'hsnCode', e.target.value)}
+              fullWidth  
+              sx={{ flex: 1 }} 
+            />
             <TextField
-  label={`Qty (Stock: ${
-    (Number(item.stock) || 0) + (Number(item.originalQuantity) || 0)
-  })`}              type="text"
+              label={`Qty (Stock: ${
+                (Number(item.stock) || 0) + (Number(item.originalQuantity) || 0)
+              })`}
+              type="text"
               value={item.quantity}
               onChange={e => handleItemChange(idx, 'quantity', e.target.value)}
               fullWidth
@@ -784,10 +798,8 @@ function amountInWords(amount) {
 
         <Stack direction="row" justifyContent="space-between" spacing={2} mb={2}>
           <Box>
-            <Typography><strong>Invoice No:</strong> {invoiceNo}</Typography>
+            <Typography><strong>PI No.:</strong> {invoiceNo}</Typography>
             <Typography><strong>Date:</strong> {formatDate(invoiceDate)}</Typography>
-            <Typography><strong>Buyers P.O. No.:</strong> {poNo || '—'}</Typography>
-            <Typography><strong>P.O. Date:</strong> {formatDate(poDate) || '—'}</Typography>
           </Box>
 
           <Box textAlign="right">
@@ -890,4 +902,4 @@ function amountInWords(amount) {
   );
 };
 
-export default SalesForm;
+export default ProformaInvoiceForm;

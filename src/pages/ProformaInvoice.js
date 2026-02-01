@@ -5,27 +5,23 @@ import {
 } from '@mui/material';
 import { Visibility as VisibilityIcon } from '@mui/icons-material';
 import axios from 'axios';
-import SalesForm from '../components/sales/SalesForm';
+import ProformaInvoiceForm from '../components/proforma/ProformaInvoiceForm';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { Menu} from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 
 
-const Sales = () => {
-  const [sales, setSales] = useState([]);
+const ProformaInvoice = () => {
+  const [invoices, setInvoices] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [sortOrder, setSortOrder] = useState('asc');
-  const [showDownloadDialog, setShowDownloadDialog] = useState(false);
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
-  const [downloadAll, setDownloadAll] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewFreight, setViewFreight] = useState(0);
   const BASE_URL = process.env.REACT_APP_API_BASE_URL;
-  const [editSale, setEditSale] = useState(null);
+  const [editInvoice, setEditInvoice] = useState(null);
 
   const [anchorEls, setAnchorEls] = useState({});
 
@@ -37,14 +33,14 @@ const handleMenuClose = (index) => {
   setAnchorEls((prev) => ({ ...prev, [index]: null }));
 };
 
-const handleDownload = (sale) => {
-  console.log("Download", sale);
-  handleMenuClose(sale.id);
+const handleDownload = (invoice) => {
+  console.log("Download", invoice);
+  handleMenuClose(invoice.id);
 };
 
-const handleEdit = (sale) => {
-  console.log("Edit:---", sale);
-  handleMenuClose(sale.id);
+const handleEdit = (invoice) => {
+  console.log("Edit:---", invoice);
+  handleMenuClose(invoice.id);
 };
 
 const handleDelete = (id) => {
@@ -53,17 +49,17 @@ const handleDelete = (id) => {
 };
 
 
-  const fetchSales = async () => {
+  const fetchInvoices = async () => {
     try {
-const res = await axios.get(`${BASE_URL}/sales`);
-      setSales(res.data);
+const res = await axios.get(`${BASE_URL}/proforma-invoices`);
+      setInvoices(res.data);
     } catch (err) {
-      console.error('Error fetching sales:', err);
+      console.error('Error fetching proforma invoices:', err);
     }
   };
 
   useEffect(() => {
-    fetchSales();
+    fetchInvoices();
   }, []);
 
   const handleViewItems = (items, freight) => {
@@ -74,9 +70,9 @@ const res = await axios.get(`${BASE_URL}/sales`);
 
   const handleStatusChange = async (id, newStatus) => {
     try {
-await axios.put(`${BASE_URL}/sales/${id}/status`, { status: newStatus });
-      setSales((prevSales) =>
-        prevSales.map(s => (s.id === id ? { ...s, status: newStatus } : s))
+await axios.put(`${BASE_URL}/proforma-invoices/${id}/status`, { status: newStatus });
+      setInvoices((prevInvoices) =>
+        prevInvoices.map(s => (s.id === id ? { ...s, status: newStatus } : s))
       );
     } catch (err) {
       console.error('Error updating status:', err);
@@ -84,11 +80,7 @@ await axios.put(`${BASE_URL}/sales/${id}/status`, { status: newStatus });
     }
   };
 
-  const handleDownloadReport = () => {
-    setShowDownloadDialog(true);
-  };
-
-  const filteredSales = sales
+  const filteredInvoices = invoices
     .filter(s =>
       s.invoiceNo?.toLowerCase().includes(searchText.toLowerCase()) &&
       (statusFilter === 'all' || s.status === statusFilter)
@@ -104,7 +96,7 @@ await axios.put(`${BASE_URL}/sales/${id}/status`, { status: newStatus });
   <Box sx={{ p: 3 }}>
     {/* Header */}
     <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold' }}>
-      Sales Management
+      Proforma Invoice Management
     </Typography>
 
     {/* Action Buttons */}
@@ -119,19 +111,7 @@ await axios.put(`${BASE_URL}/sales/${id}/status`, { status: newStatus });
           px: 2.5,
         }}
       >
-        {showForm ? 'Hide Form' : 'Generate New Invoice'}
-      </Button>
-
-      <Button
-        variant="outlined"
-        onClick={handleDownloadReport}
-        sx={{
-          textTransform: 'none',
-          fontWeight: 500,
-          px: 2.5,
-        }}
-      >
-        Download Report
+        {showForm ? 'Hide Form' : 'Generate New Proforma Invoice'}
       </Button>
     </Stack>
 
@@ -171,29 +151,29 @@ await axios.put(`${BASE_URL}/sales/${id}/status`, { status: newStatus });
       >
         <MenuItem value="all">All</MenuItem>
         <MenuItem value="under-process">Under Process</MenuItem>
-        <MenuItem value="completed">Completed</MenuItem>
-        <MenuItem value="payment-received">Payment Received</MenuItem>
+        <MenuItem value="order-confirmed">Order Confirmed</MenuItem>
+        <MenuItem value="cancelled">Cancelled</MenuItem>
       </TextField>
     </Stack>
 
     {/* Invoice Form */}
 {showForm && (
   <Box mb={4}>
-    <SalesForm
-      editData={editSale}
+    <ProformaInvoiceForm
+      editData={editInvoice}
       onSaved={() => {
         setShowForm(false);
-        setEditSale(null);
-        fetchSales(); // Refresh list
+        setEditInvoice(null);
+        fetchInvoices(); // Refresh list
       }}
     />
   </Box>
 )}
 
-    {/* Sales Table */}
+    {/* Invoices Table */}
     <Paper elevation={3} sx={{ p: 2 }}>
       <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-        All Sales
+        All Proforma Invoices
       </Typography>
 
       <Box sx={{ overflowX: 'auto' }}>
@@ -213,31 +193,31 @@ await axios.put(`${BASE_URL}/sales/${id}/status`, { status: newStatus });
             </tr>
           </thead>
           <tbody>
-            {filteredSales.length === 0 ? (
+            {filteredInvoices.length === 0 ? (
               <tr>
-                <td colSpan="9" className="text-center text-muted">
-                  No sales found.
+                <td colSpan="10" className="text-center text-muted">
+                  No proforma invoices found.
                 </td>
               </tr>
             ) : (
-              filteredSales.map((sale, idx) => {
-                const freightAmount = Number(sale.freight || 0);
-                const itemSubtotal = sale.items.reduce((sum, i) =>
+              filteredInvoices.map((invoice, idx) => {
+                const freightAmount = Number(invoice.freight || 0);
+                const itemSubtotal = invoice.items.reduce((sum, i) =>
                   sum + (i.quantity * i.price) + ((i.quantity * i.price * i.gstRate) / 100), 0);
                 const freightGst = (18 / 100) * freightAmount;
                 const total = itemSubtotal + freightAmount + freightGst;
 
                 return (
                   <tr key={idx}>
-                    <td>{sale.invoiceNo}</td>
-                    <td>{sale.invoiceDate}</td>
-                    <td>{sale.customerName}</td>
-                    <td>{sale.gstin}</td>
-                    <td>{sale.items.length}</td>
+                    <td>{invoice.invoiceNo}</td>
+                    <td>{invoice.invoiceDate}</td>
+                    <td>{invoice.customerName}</td>
+                    <td>{invoice.gstin}</td>
+                    <td>{invoice.items.length}</td>
                     <td>₹{freightAmount.toFixed(2)}</td>
                     <td>₹{total.toFixed(2)}</td>
                     <td className="text-center">
-                      <IconButton onClick={() => handleViewItems(sale.items, sale.freight)}>
+                      <IconButton onClick={() => handleViewItems(invoice.items, invoice.freight)}>
                         <VisibilityIcon />
                       </IconButton>
                     </td>
@@ -245,23 +225,23 @@ await axios.put(`${BASE_URL}/sales/${id}/status`, { status: newStatus });
                       <Box
                         sx={{
                           backgroundColor:
-                            sale.status === 'under-process' ? '#fff3cd' :
-                              sale.status === 'completed' ? '#e1f5fe' :
-                                sale.status === 'payment-received' ? '#e8f5e9' : 'white',
+                            invoice.status === 'under-process' ? '#fff3cd' :
+                              invoice.status === 'order-confirmed' ? '#e1f5fe' :
+                                invoice.status === 'cancelled' ? '#ffebee' : 'white',
                           borderRadius: 1,
                           px: 1,
                         }}
                       >
                         <Select
                           size="small"
-                          value={sale.status || 'under-process'}
-                          onChange={(e) => handleStatusChange(sale.id, e.target.value)}
+                          value={invoice.status || 'under-process'}
+                          onChange={(e) => handleStatusChange(invoice.id, e.target.value)}
                           variant="standard"
                           fullWidth
                         >
                           <MenuItem value="under-process">Under Process</MenuItem>
-                          <MenuItem value="completed">Completed</MenuItem>
-                          <MenuItem value="payment-received">Payment Received</MenuItem>
+                          <MenuItem value="order-confirmed">Order Confirmed</MenuItem>
+                          <MenuItem value="cancelled">Cancelled</MenuItem>
                         </Select>
                       </Box>
                     </td>
@@ -274,9 +254,9 @@ await axios.put(`${BASE_URL}/sales/${id}/status`, { status: newStatus });
   open={Boolean(anchorEls[idx])}
   onClose={() => handleMenuClose(idx)}
 >
-  <MenuItem onClick={() => handleDownload(sale)}>Download</MenuItem>
-  <MenuItem onClick={() => { console.log('Editing sale:', sale); setEditSale(sale); setShowForm(true); handleMenuClose(idx) }}>Edit</MenuItem>
-  <MenuItem onClick={() => handleDelete(sale.id)}>Delete</MenuItem>
+  <MenuItem onClick={() => handleDownload(invoice)}>Download</MenuItem>
+  <MenuItem onClick={() => { console.log('Editing invoice:', invoice); setEditInvoice(invoice); setShowForm(true); handleMenuClose(idx) }}>Edit</MenuItem>
+  <MenuItem onClick={() => handleDelete(invoice.id)}>Delete</MenuItem>
 </Menu>
 
 </td>
@@ -289,11 +269,9 @@ await axios.put(`${BASE_URL}/sales/${id}/status`, { status: newStatus });
       </Box>
     </Paper>
 
-    {/* Other dialogs remain unchanged */}
-
-
+    {/* Items Dialog */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Items in Sale</DialogTitle>
+        <DialogTitle>Items in Proforma Invoice</DialogTitle>
         <DialogContent dividers>
           {selectedItems.length === 0 ? (
             <Typography>No items available</Typography>
@@ -368,101 +346,8 @@ await axios.put(`${BASE_URL}/sales/${id}/status`, { status: newStatus });
         </DialogContent>
 
       </Dialog>
-
-      <Dialog
-        open={showDownloadDialog}
-        onClose={() => {
-          setShowDownloadDialog(false);
-          setDownloadAll(false);
-          setFromDate('');
-          setToDate('');
-        }}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle>Select Download Option</DialogTitle>
-        <DialogContent dividers>
-          <Stack spacing={2}>
-            <div className="form-check">
-              <input
-                className="form-check-input"
-                type="checkbox"
-                id="downloadAll"
-                checked={downloadAll}
-                onChange={(e) => setDownloadAll(e.target.checked)}
-              />
-              <label className="form-check-label" htmlFor="downloadAll">
-                Download all sales
-              </label>
-            </div>
-
-            <TextField
-              label="From Date"
-              type="date"
-              InputLabelProps={{ shrink: true }}
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              fullWidth
-              disabled={downloadAll}
-            />
-            <TextField
-              label="To Date"
-              type="date"
-              InputLabelProps={{ shrink: true }}
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              fullWidth
-              disabled={downloadAll}
-            />
-
-            <Button
-              variant="contained"
-              onClick={async () => {
-                if (!downloadAll && (!fromDate || !toDate)) {
-                  alert("Please select both From and To dates.");
-                  return;
-                }
-
-                try {
-                  let url = BASE_URL + "/sales/download-report";
-                  if (!downloadAll) {
-                    url += `?from=${fromDate}&to=${toDate}`;
-                  }
-
-                  const res = await fetch(url, {
-                    method: 'GET',
-                  });
-
-                  if (!res.ok) {
-                    throw new Error("Download failed");
-                  }
-
-                  const blob = await res.blob();
-                  const href = window.URL.createObjectURL(blob);
-
-                  const link = document.createElement('a');
-                  link.href = href;
-                  link.setAttribute('download', 'Sales_Report.xlsx');
-                  document.body.appendChild(link);
-                  link.click();
-                  link.remove();
-
-                  setShowDownloadDialog(false);
-                } catch (err) {
-                  console.error("Error downloading report:", err);
-                  alert("Failed to download report");
-                }
-              }}
-            >
-              Download
-            </Button>
-
-
-          </Stack>
-        </DialogContent>
-      </Dialog>
     </Box>
   );
 };
 
-export default Sales;
+export default ProformaInvoice;

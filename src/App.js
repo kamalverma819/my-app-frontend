@@ -16,6 +16,7 @@ import Dashboard from "./pages/Dashboard";
 import Items from "./pages/Items";
 import Purchases from "./pages/Purchases";
 import Sales from "./pages/Sales";
+import ProformaInvoice from "./pages/ProformaInvoice";
 import Vendors from "./pages/Vendors";
 import Customers from "./pages/Customers";
 import Profit from "./pages/Profit";
@@ -119,6 +120,7 @@ function App() {
                   <Route path="/items" element={<Items />} />
                   <Route path="/purchases" element={<Purchases />} />
                   <Route path="/sales" element={<Sales />} />
+                  <Route path="/proforma-invoice" element={<ProformaInvoice />} />
                   <Route path="/vendors" element={<Vendors />} />
                   <Route path="/customers" element={<Customers />} />
                   <Route path="/profit" element={<Profit />} />

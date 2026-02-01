@@ -26,6 +26,7 @@ import {
   ChevronRight as ChevronRightIcon,
   Group as CustomersIcon,
   AttachMoney as AttachMoneyIcon,
+  Description as ProformaInvoiceIcon,
 } from "@mui/icons-material";
 import { Link, useLocation } from "react-router-dom";
 
@@ -61,9 +62,11 @@ const Sidebar = ({ open, onClose, isMobile }) => {
     { text: "Inventory", icon: <InventoryIcon />, path: "/items" },
     { text: "Purchases", icon: <PurchaseIcon />, path: "/purchases" },
     { text: "Sales", icon: <SalesIcon />, path: "/sales" },
+    { text: "Proforma Invoice", icon: <ProformaInvoiceIcon />, path: "/proforma-invoice" },
     { text: "Vendors", icon: <VendorsIcon />, path: "/vendors" },
     { text: "Customers", icon: <CustomersIcon />, path: "/customers" },
     { text: "Profit List", icon: <AttachMoneyIcon />, path: "/profit-list" },
+    
   ];
 
   const settingsItems = [

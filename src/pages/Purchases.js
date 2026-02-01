@@ -304,7 +304,7 @@ const Purchases = () => {
                 }
 
                 try {
-                  let url = "/api/purchases/download-report";
+                  let url = BASE_URL+ "/purchases/download-report";
                   if (!downloadAll) {
                     url += `?from=${fromDate}&to=${toDate}`;
                   }

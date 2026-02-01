@@ -224,9 +224,22 @@ return (
             type="number"
             value={currentItem.quantity}
             onChange={(e) =>
-              setCurrentItem({ ...currentItem, quantity: parseInt(e.target.value) || 1 })
+              setCurrentItem({ ...currentItem, quantity: parseInt(e.target.value)})
             }
             fullWidth
+            sx={{
+              '& input[type=number]': {
+                MozAppearance: 'textfield'
+              },
+              '& input[type=number]::-webkit-outer-spin-button': {
+                WebkitAppearance: 'none',
+                margin: 0
+              },
+              '& input[type=number]::-webkit-inner-spin-button': {
+                WebkitAppearance: 'none',
+                margin: 0
+              }
+            }}
           />
         </Grid>
         <Grid item xs={6} md={2}>
@@ -235,9 +248,22 @@ return (
             type="number"
             value={currentItem.price}
             onChange={(e) =>
-              setCurrentItem({ ...currentItem, price: parseFloat(e.target.value) || 0 })
+              setCurrentItem({ ...currentItem, price: parseFloat(e.target.value) })
             }
             fullWidth
+            sx={{
+              '& input[type=number]': {
+                MozAppearance: 'textfield'
+              },
+              '& input[type=number]::-webkit-outer-spin-button': {
+                WebkitAppearance: 'none',
+                margin: 0
+              },
+              '& input[type=number]::-webkit-inner-spin-button': {
+                WebkitAppearance: 'none',
+                margin: 0
+              }
+            }}
           />
         </Grid>
         <Grid item xs={6} md={2}>
@@ -299,9 +325,25 @@ return (
           <TextField
             label="Freight Charges"
             type="number"
-            value={freight}
-            onChange={(e) => setFreight(e.target.value)}
+            value={freight || ''}
+            onChange={(e) => {
+              const value = e.target.value;
+              setFreight(value === '' ? 0 : parseFloat(value) || 0);
+            }}
             fullWidth
+            sx={{
+              '& input[type=number]': {
+                MozAppearance: 'textfield'
+              },
+              '& input[type=number]::-webkit-outer-spin-button': {
+                WebkitAppearance: 'none',
+                margin: 0
+              },
+              '& input[type=number]::-webkit-inner-spin-button': {
+                WebkitAppearance: 'none',
+                margin: 0
+              }
+            }}
           />
         </Grid>
 

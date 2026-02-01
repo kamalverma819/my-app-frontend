@@ -20,6 +20,8 @@
     "bootstrap": "^5.3.7",
     "date-fns": "^4.1.0",
     "html2pdf.js": "^0.10.3",
+    "jspdf": "^4.0.0",
+    "jspdf-autotable": "^5.0.7",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^6.30.1",
