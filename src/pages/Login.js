@@ -40,7 +40,14 @@ const Login = ({ onLogin }) => {
         email: credentials.email.trim(),
         otp: credentials.otp.trim(),
       });
-      onLogin(res.data.token);
+      // Store token immediately so it's available for all API calls after redirect
+      const token = res.data?.token ?? res.data?.data?.token;
+      if (!token) {
+        setError("Invalid response: no token received");
+        return;
+      }
+      localStorage.setItem("authToken", token);
+      onLogin(token);
     } catch (err) {
       const msg = err.response?.data?.message || "Invalid or expired OTP";
       setError(msg);
