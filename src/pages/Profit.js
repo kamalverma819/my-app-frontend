@@ -5,7 +5,7 @@ import {
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer
 } from 'recharts';
-import axios from 'axios';
+import api from "../api/client";
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -15,7 +15,6 @@ const Profit = ({ itemId, open, onClose }) => {
   const [itemDetails, setItemDetails] = useState(null);
   const [fromDate, setFromDate] = useState(null);
   const [toDate, setToDate] = useState(null);
-  const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
   const fetchProfit = async () => {
     try {
@@ -24,14 +23,14 @@ const Profit = ({ itemId, open, onClose }) => {
       if (toDate) params.to = toDate.toISOString().split('T')[0];
 
 const [profitRes, itemRes] = await Promise.all([
-  axios.get(`${BASE_URL}/sales/profit/${itemId}`, { params }),
-  axios.get(`${BASE_URL}/items/${itemId}`)
+  api.get(`/api/sales/profit/${itemId}`, { params }),
+  api.get(`/api/items/${itemId}`)
 ]);
 
       setProfitData(profitRes.data);
       setItemDetails(itemRes.data);
     } catch (error) {
-      console.error("Error fetching profit:", error);
+      // Error fetching profit
     }
   };
 

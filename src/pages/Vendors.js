@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
+import api from "../api/client";
 import CloseIcon from '@mui/icons-material/Close';
 import {
-  Box, Button, Typography, TextField, Snackbar, Alert, Modal, IconButton, Dialog, DialogActions, DialogContent, DialogTitle, Tooltip, LinearProgress,
+  Button, TextField, Snackbar, Alert, Modal, IconButton, Dialog, DialogActions, DialogContent, DialogTitle, Tooltip, LinearProgress,
   Chip
 } from '@mui/material';
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
@@ -25,7 +25,6 @@ const Vendors = () => {
   const [selectedVendor, setSelectedVendor] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
-const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
   // Form state
   const [formData, setFormData] = useState({
@@ -51,11 +50,10 @@ const BASE_URL = process.env.REACT_APP_API_BASE_URL;
   const fetchVendors = async () => {
     setLoading(true);
     try {
-const res = await axios.get(`${BASE_URL}/vendors`);
+const res = await api.get("/api/vendors");
       setVendors(res.data);
     } catch (err) {
       showSnackbar('Failed to fetch vendors', 'error');
-      console.error('Fetch vendors error:', err);
     } finally {
       setLoading(false);
     }
@@ -118,17 +116,16 @@ const res = await axios.get(`${BASE_URL}/vendors`);
 
     try {
       if (editingId) {
-    await axios.put(`${BASE_URL}/vendors/${editingId}`, formData);
+    await api.put(`/api/vendors/${editingId}`, formData);
     showSnackbar('Vendor updated successfully', 'success');
   } else {
-    await axios.post(`${BASE_URL}/vendors`, formData);
+    await api.post("/api/vendors", formData);
     showSnackbar('Vendor added successfully', 'success');
   }
       setOpenModal(false);
       fetchVendors();
     } catch (err) {
       showSnackbar(err.response?.data?.message || 'Operation failed', 'error');
-      console.error('Submit error:', err);
     }
   };
 
@@ -140,12 +137,11 @@ const res = await axios.get(`${BASE_URL}/vendors`);
 
   const handleDelete = async () => {
     try {
-await axios.delete(`${BASE_URL}/vendors/${deleteId}`);
+await api.delete(`/api/vendors/${deleteId}`);
       showSnackbar('Vendor deleted successfully', 'success');
       fetchVendors();
     } catch (err) {
       showSnackbar('Failed to delete vendor', 'error');
-      console.error('Delete error:', err);
     } finally {
       setOpenDeleteDialog(false);
     }
@@ -168,9 +164,9 @@ await axios.delete(`${BASE_URL}/vendors/${deleteId}`);
       headerName: 'Name',
       width: 200,
       renderCell: (params) => (
-        <Typography fontWeight="bold" color="primary.main">
+        <span style={{ fontWeight: "bold", color: "#1976d2" }}>
           {params.value}
-        </Typography>
+        </span>
       ),
     },
     {
@@ -178,15 +174,15 @@ await axios.delete(`${BASE_URL}/vendors/${deleteId}`);
       headerName: 'GSTIN',
       width: 200,
       renderCell: (params) => (
-        <Typography
-          sx={{
+        <span
+          style={{
             fontSize: "0.85rem",
             fontFamily: "monospace",
             color: "#333",
           }}
         >
           {params.value}
-        </Typography>
+        </span>
       )
     },
     {
@@ -194,9 +190,9 @@ await axios.delete(`${BASE_URL}/vendors/${deleteId}`);
       headerName: 'Contact',
       width: 150,
       renderCell: (params) => (
-        <Typography sx={{ fontSize: "0.9rem" }}>
+        <span style={{ fontSize: "0.9rem" }}>
           📞 {params.value}
-        </Typography>
+        </span>
       )
     },
     {
@@ -205,9 +201,9 @@ await axios.delete(`${BASE_URL}/vendors/${deleteId}`);
       width: 250,
       renderCell: (params) => (
         <Tooltip title={params.value}>
-          <Typography sx={{ fontSize: "0.85rem", color: "#555" }}>
+          <span style={{ fontSize: "0.85rem", color: "#555" }}>
             {params.value?.length > 20 ? `${params.value.substring(0, 20)}...` : params.value}
-          </Typography>
+          </span>
         </Tooltip>
       )
     },
@@ -237,16 +233,14 @@ await axios.delete(`${BASE_URL}/vendors/${deleteId}`);
   ], []);
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography
-          variant="h5"
-          fontWeight="bold"
-          sx={{ display: "flex", alignItems: "center", gap: 1, color: "#2c3e50" }}
+    <div style={{ padding: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <h1
+          style={{ fontWeight: 'bold', display: "flex", alignItems: "center", gap: '8px', color: "#2c3e50", margin: 0 }}
         >
           <span role="img" aria-label="vendors">👥</span> Vendor Management
-        </Typography>
-        <Box>
+        </h1>
+        <div>
           <Button
             variant="contained"
             startIcon={<RefreshIcon />}
@@ -275,12 +269,12 @@ await axios.delete(`${BASE_URL}/vendors/${deleteId}`);
             Add Vendor
           </Button>
 
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {loading && <LinearProgress />}
 
-      <Box sx={{ height: 600, width: '100%', mt: 2 }}>
+      <div style={{ height: '600px', width: '100%', marginTop: '16px' }}>
         <DataGrid
           rows={vendors}
           columns={columns}
@@ -321,7 +315,7 @@ await axios.delete(`${BASE_URL}/vendors/${deleteId}`);
 
         />
 
-      </Box>
+      </div>
 
       {/* Add/Edit Vendor Modal */}
       <Modal
@@ -329,38 +323,36 @@ await axios.delete(`${BASE_URL}/vendors/${deleteId}`);
         onClose={() => setOpenModal(false)}
         aria-labelledby="vendor-modal-title"
       >
-        <Box
-          component="form"
-          onSubmit={handleSubmit}
-          sx={{
+        <div
+          style={{
             position: "absolute",
             top: "50%",
             left: "50%",
             transform: "translate(-50%, -50%)",
-            width: 420,
-            bgcolor: "#fff",
-            borderRadius: 3,
-            boxShadow: 5,
-            p: 4,
+            width: '420px',
+            backgroundColor: "#fff",
+            borderRadius: '12px',
+            boxShadow: '0px 4px 20px rgba(0,0,0,0.15)',
+            padding: '32px',
           }}
-
         >
+          <form onSubmit={handleSubmit}>
           <IconButton
             aria-label="close"
             onClick={() => setOpenModal(false)}
-            sx={{
+            style={{
               position: 'absolute',
               right: 8,
               top: 8,
-              color: (theme) => theme.palette.grey[500],
+              color: '#9e9e9e',
             }}
           >
             <CloseIcon />
           </IconButton>
 
-          <Typography id="vendor-modal-title" variant="h6" gutterBottom>
+          <h2 id="vendor-modal-title" style={{ marginBottom: '16px', marginTop: 0 }}>
             {editingId ? 'Edit Vendor' : 'Add Vendor'}
-          </Typography>
+          </h2>
 
           <TextField
             margin="normal"
@@ -410,11 +402,12 @@ await axios.delete(`${BASE_URL}/vendors/${deleteId}`);
             type="submit"
             fullWidth
             variant="contained"
-            sx={{ mt: 3 }}
+            style={{ marginTop: '24px' }}
           >
             {editingId ? 'Update Vendor' : 'Add Vendor'}
           </Button>
-        </Box>
+          </form>
+        </div>
       </Modal>
 
       {/* Delete Confirmation Dialog */}
@@ -424,15 +417,15 @@ await axios.delete(`${BASE_URL}/vendors/${deleteId}`);
       >
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
-          <Typography>Are you sure you want to delete this vendor?</Typography>
+          <p>Are you sure you want to delete this vendor?</p>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
+        <DialogActions style={{ padding: '24px' }}>
           <Button onClick={() => setOpenDeleteDialog(false)}>Cancel</Button>
           <Button
             onClick={handleDelete}
             variant="contained"
             color="error"
-            sx={{ borderRadius: 2 }}
+            style={{ borderRadius: '8px' }}
           >
             Delete
           </Button>
@@ -448,12 +441,12 @@ await axios.delete(`${BASE_URL}/vendors/${deleteId}`);
         <DialogTitle>Vendor Details</DialogTitle>
         <DialogContent>
           {selectedVendor && (
-            <Box sx={{ mt: 2 }}>
-              <Typography><strong>Name:</strong> {selectedVendor.name}</Typography>
-              <Typography><strong>GSTIN:</strong> {selectedVendor.gstin}</Typography>
-              <Typography><strong>Contact:</strong> {selectedVendor.contact}</Typography>
-              <Typography><strong>Address:</strong> {selectedVendor.address}</Typography>
-            </Box>
+            <div style={{ marginTop: '16px' }}>
+              <p><strong>Name:</strong> {selectedVendor.name}</p>
+              <p><strong>GSTIN:</strong> {selectedVendor.gstin}</p>
+              <p><strong>Contact:</strong> {selectedVendor.contact}</p>
+              <p><strong>Address:</strong> {selectedVendor.address}</p>
+            </div>
           )}
         </DialogContent>
         <DialogActions>
@@ -483,7 +476,7 @@ await axios.delete(`${BASE_URL}/vendors/${deleteId}`);
         </Alert>
       </Snackbar>
 
-    </Box>
+    </div>
   );
 };
 

@@ -21,7 +21,6 @@ const Layout = ({ children }) => {
         sidebarOpen={sidebarOpen}
         onLogout={() => {
           // handle logout here
-          console.log("Logout clicked");
         }}
       />
 

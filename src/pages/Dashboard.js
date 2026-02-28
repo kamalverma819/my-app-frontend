@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Box, Typography, Paper, Grid } from "@mui/material";
 import {
   Inventory,
   People,
@@ -7,7 +6,7 @@ import {
   ShoppingCart,
   AttachMoney,
 } from "@mui/icons-material";
-import axios from "axios";
+import api from "../api/client";
 import { Link } from "react-router-dom";
 
 const Dashboard = () => {
@@ -19,12 +18,16 @@ const Dashboard = () => {
     totalItems: 0,
   });
 
-  const BASE_URL = process.env.REACT_APP_API_BASE_URL;
-  console.log("BASE_URL",BASE_URL);
   useEffect(() => {
-  axios.get(`${BASE_URL}/dashboard/stats`)
-      .then(res => setStats(res.data))
-      .catch(err => console.error("Dashboard fetch error", err));
+    const fetchStats = async () => {
+      try {
+        const res = await api.get("/api/dashboard/stats");
+        setStats(res.data);
+      } catch (err) {
+        // Error fetching dashboard stats
+      }
+    };
+    fetchStats();
   }, []);
 
   const cardData = [
@@ -66,45 +69,44 @@ const Dashboard = () => {
   ];
 
   return (
-    <Box sx={{ p: 4 }}>
-      <Typography variant="h4" gutterBottom fontWeight="bold">
+    <div style={{ padding: '32px' }}>
+      <h1 style={{ marginBottom: '16px', fontWeight: 'bold', marginTop: 0 }}>
         📊 Dashboard
-      </Typography>
-      <Grid container spacing={4}>
+      </h1>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '32px' }}>
         {cardData.map((stat, index) => (
-          <Grid item xs={12} sm={6} md={4} key={index}>
+          <div key={index} style={{ gridColumn: 'span 12 / span 4' }}>
             <Link to={stat.route} style={{ textDecoration: "none" }}>
-              <Paper
-                elevation={6}
-                sx={{
-                  p: 4,
+              <div
+                style={{
+                  padding: '32px',
                   display: "flex",
                   alignItems: "center",
-                  borderRadius: 4,
+                  borderRadius: '16px',
                   backgroundColor: stat.color,
-                  minHeight: 140,
+                  minHeight: '140px',
                   transition: "transform 0.3s ease",
                   cursor: "pointer",
-                  "&:hover": {
-                    transform: "scale(1.05)",
-                  },
+                  boxShadow: '0px 4px 12px rgba(0,0,0,0.15)'
                 }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.05)"}
+                onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
               >
-                <Box sx={{ mr: 4 }}>{stat.icon}</Box>
-                <Box>
-                  <Typography variant="h4" fontWeight="bold" color="text.primary">
+                <div style={{ marginRight: '32px' }}>{stat.icon}</div>
+                <div>
+                  <h2 style={{ fontWeight: 'bold', margin: 0, color: '#333' }}>
                     {stat.value}
-                  </Typography>
-                  <Typography variant="h6" color="text.secondary">
+                  </h2>
+                  <h3 style={{ margin: 0, color: '#666', fontSize: '1rem' }}>
                     {stat.title}
-                  </Typography>
-                </Box>
-              </Paper>
+                  </h3>
+                </div>
+              </div>
             </Link>
-          </Grid>
+          </div>
         ))}
-      </Grid>
-    </Box>
+      </div>
+    </div>
   );
 };
 

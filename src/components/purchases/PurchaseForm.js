@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from "../../api/client";
 import {
-  Box, Button, Typography, TextField, Autocomplete, Paper, Divider,
-  Grid
+  Button, TextField, Autocomplete,
+  Snackbar, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow
 } from '@mui/material';
 import {
   Add as AddIcon, Save as SaveIcon
 } from '@mui/icons-material';
-import 'bootstrap/dist/css/bootstrap.min.css';
 
 const PurchaseForm = () => {
   const [vendors, setVendors] = useState([]);
@@ -25,19 +24,19 @@ const PurchaseForm = () => {
     gstRate: 18
   });
   const [freight, setFreight] = useState(0);
-  const BASE_URL = process.env.REACT_APP_API_BASE_URL;
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
 const [vendorsRes, itemsRes] = await Promise.all([
-  axios.get(`${BASE_URL}/vendors`),
-  axios.get(`${BASE_URL}/items`)
+  api.get("/api/vendors"),
+  api.get("/api/items")
 ]);
         setVendors(vendorsRes.data);
         setItems(itemsRes.data);
       } catch (err) {
-        console.error('Failed to fetch data:', err);
+        setSnackbar({ open: true, message: 'Failed to fetch data', severity: 'error' });
       }
     };
     fetchData();
@@ -119,7 +118,7 @@ const [vendorsRes, itemsRes] = await Promise.all([
 
   const handleSubmit = async () => {
     if (!invoiceNo || !invoiceDate || !selectedVendor || selectedItems.length === 0) {
-      alert('Fill all required fields');
+      setSnackbar({ open: true, message: 'Fill all required fields', severity: 'warning' });
       return;
     }
 
@@ -138,8 +137,8 @@ const [vendorsRes, itemsRes] = await Promise.all([
     };
 
     try {
-await axios.post(`${BASE_URL}/purchases`, payload);
-      alert('Purchase saved successfully');
+      await api.post("/api/purchases", payload);
+      setSnackbar({ open: true, message: 'Purchase saved successfully', severity: 'success' });
       setInvoiceNo('');
       setInvoiceDate('');
       setSelectedVendor(null);
@@ -147,48 +146,47 @@ await axios.post(`${BASE_URL}/purchases`, payload);
       setSelectedItems([]);
       setFreight(0);
     } catch (err) {
-      console.error('Submit failed:', err);
-      alert('Failed to save purchase');
+      setSnackbar({ open: true, message: 'Failed to save purchase', severity: 'error' });
     }
   };
 
 return (
-  <Box sx={{ backgroundColor: '#f5f7fa', p: 3, borderRadius: 2, mb: 4 }}>
-    <Typography variant="h4" fontWeight="bold" gutterBottom>
+  <div style={{ backgroundColor: '#f5f7fa', padding: '24px', borderRadius: '8px', marginBottom: '32px' }}>
+    <h1 style={{ fontWeight: 'bold', marginBottom: '16px' }}>
       Purchase Invoice
-    </Typography>
+    </h1>
 
-    <Paper elevation={3} sx={{ p: 4 }}>
+    <div style={{ padding: '32px', boxShadow: '0px 2px 8px rgba(0,0,0,0.1)', borderRadius: '4px' }}>
       {/* Top Section */}
-   <div className="row mb-3">
-          <div className="col-md-4">
-            <TextField label="Invoice Number" value={invoiceNo} onChange={(e) => setInvoiceNo(e.target.value)} fullWidth required />
-          </div>
-          <div className="col-md-4">
-            <TextField label="Invoice Date" type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} InputLabelProps={{ shrink: true }} fullWidth required />
-          </div>
-          <div className="col-md-4">
-            <Autocomplete
-              options={vendors}
-              getOptionLabel={(v) => v.name}
-              value={selectedVendor}
-              onChange={handleVendorChange}
-              renderInput={(params) => <TextField {...params} label="Select Vendor" required />}
-            />
-          </div>
-          <div className="col-md-4 mt-3">
-            <TextField label="GSTIN" value={gstin} fullWidth disabled />
-          </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '24px', marginBottom: '24px' }}>
+        <div style={{ gridColumn: 'span 12 / span 4' }}>
+          <TextField label="Invoice Number" value={invoiceNo} onChange={(e) => setInvoiceNo(e.target.value)} fullWidth required />
         </div>
+        <div style={{ gridColumn: 'span 12 / span 4' }}>
+          <TextField label="Invoice Date" type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} fullWidth required />
+        </div>
+        <div style={{ gridColumn: 'span 12 / span 4' }}>
+          <Autocomplete
+            options={vendors}
+            getOptionLabel={(v) => v.name}
+            value={selectedVendor}
+            onChange={handleVendorChange}
+            renderInput={(params) => <TextField {...params} label="Select Vendor" required />}
+          />
+        </div>
+        <div style={{ gridColumn: 'span 12 / span 4' }}>
+          <TextField label="GSTIN" value={gstin} fullWidth disabled />
+        </div>
+      </div>
 
-      <Divider sx={{ my: 4 }} />
+      <hr style={{ margin: '32px 0' }} />
 
       {/* Add Items Section */}
-      <Typography variant="h6" gutterBottom>
+      <h2 style={{ marginBottom: '16px' }}>
         Add Items
-      </Typography>
-      <Grid container spacing={2} alignItems="center">
-        <Grid item xs={12} md={4}>
+      </h2>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '16px', alignItems: 'center' }}>
+        <div style={{ gridColumn: 'span 12 / span 4' }}>
           <Autocomplete
             freeSolo
             options={items.map(i => i.name)}
@@ -207,18 +205,18 @@ return (
             renderInput={(params) => (
               <TextField {...params} label="Item Name" fullWidth />
             )}
-            sx={{ minWidth: 300 }} // Or any desired width
+            sx={{ minWidth: 300 }}
           />
-        </Grid>
-        <Grid item xs={6} md={2}>
+        </div>
+        <div style={{ gridColumn: 'span 6 / span 2' }}>
           <TextField
             label="HSN Code"
             value={currentItem.hsnCode}
             onChange={(e) => setCurrentItem({ ...currentItem, hsnCode: e.target.value })}
             fullWidth
           />
-        </Grid>
-        <Grid item xs={6} md={2}>
+        </div>
+        <div style={{ gridColumn: 'span 6 / span 2' }}>
           <TextField
             label="Qty"
             type="number"
@@ -241,8 +239,8 @@ return (
               }
             }}
           />
-        </Grid>
-        <Grid item xs={6} md={2}>
+        </div>
+        <div style={{ gridColumn: 'span 6 / span 2' }}>
           <TextField
             label="Price"
             type="number"
@@ -265,8 +263,8 @@ return (
               }
             }}
           />
-        </Grid>
-        <Grid item xs={6} md={2}>
+        </div>
+        <div style={{ gridColumn: 'span 6 / span 2' }}>
           <Button
             variant="contained"
             fullWidth
@@ -276,33 +274,33 @@ return (
           >
             Add
           </Button>
-        </Grid>
-      </Grid>
+        </div>
+      </div>
 
       {/* Item Table */}
-      <Box mt={4}>
-        <Typography variant="h6" gutterBottom>Items</Typography>
-        <div className="table-responsive">
-          <table className="table table-bordered table-hover table-striped">
-            <thead className="table-dark">
-              <tr>
-                <th>Item</th>
-                <th>HSN</th>
-                <th>Qty</th>
-                <th>Price</th>
-                <th>Total</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+      <div style={{ marginTop: '32px' }}>
+        <h2 style={{ marginBottom: '16px' }}>Items</h2>
+        <TableContainer variant="outlined">
+          <Table>
+            <TableHead>
+              <TableRow sx={{ backgroundColor: '#212121' }}>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Item</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>HSN</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Qty</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Price</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Total</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
               {selectedItems.map((item, index) => (
-                <tr key={index}>
-                  <td>{item.name}</td>
-                  <td>{item.hsnCode}</td>
-                  <td>{item.quantity}</td>
-                  <td>₹{item.price.toFixed(2)}</td>
-                  <td>₹{(item.price * item.quantity).toFixed(2)}</td>
-                  <td>
+                <TableRow key={index} hover>
+                  <TableCell>{item.name}</TableCell>
+                  <TableCell>{item.hsnCode}</TableCell>
+                  <TableCell>{item.quantity}</TableCell>
+                  <TableCell>₹{item.price.toFixed(2)}</TableCell>
+                  <TableCell>₹{(item.price * item.quantity).toFixed(2)}</TableCell>
+                  <TableCell>
                     <Button
                       size="small"
                       color="error"
@@ -311,17 +309,17 @@ return (
                     >
                       Delete
                     </Button>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
-      </Box>
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </div>
 
       {/* Summary and Save */}
-      <Grid container spacing={3} mt={3}>
-        <Grid item xs={12} md={4}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '24px', marginTop: '24px' }}>
+        <div style={{ gridColumn: 'span 12 / span 4' }}>
           <TextField
             label="Freight Charges"
             type="number"
@@ -345,21 +343,19 @@ return (
               }
             }}
           />
-        </Grid>
+        </div>
 
-        <Grid item xs={12} md={4}>
-          <Paper variant="outlined" sx={{ p: 2, backgroundColor: '#f0f4f8' }}>
-            <Typography variant="subtitle1">Subtotal: ₹{subtotal.toFixed(2)}</Typography>
-            <Typography variant="subtitle1">Freight: ₹{Number(freight).toFixed(2)}</Typography>
-            <Typography variant="subtitle1">CGST: ₹{gst.cgst.toFixed(2)}</Typography>
-            <Typography variant="subtitle1">SGST: ₹{gst.sgst.toFixed(2)}</Typography>
-            <Typography variant="subtitle1">IGST: ₹{gst.igst.toFixed(2)}</Typography>
-            <Divider sx={{ my: 1 }} />
-            <Typography variant="h6" fontWeight="bold">Total: ₹{total.toFixed(2)}</Typography>
-          </Paper>
-        </Grid>
+        <div style={{ gridColumn: 'span 12 / span 4', padding: '16px', border: '1px solid #e0e0e0', backgroundColor: '#f0f4f8', borderRadius: '4px' }}>
+          <p>Subtotal: ₹{subtotal.toFixed(2)}</p>
+          <p>Freight: ₹{Number(freight).toFixed(2)}</p>
+          <p>CGST: ₹{gst.cgst.toFixed(2)}</p>
+          <p>SGST: ₹{gst.sgst.toFixed(2)}</p>
+          <p>IGST: ₹{gst.igst.toFixed(2)}</p>
+          <hr style={{ margin: '8px 0' }} />
+          <h3 style={{ fontWeight: 'bold' }}>Total: ₹{total.toFixed(2)}</h3>
+        </div>
 
-        <Grid item xs={12} md={4} display="flex" alignItems="flex-end">
+        <div style={{ gridColumn: 'span 12 / span 4', display: 'flex', alignItems: 'flex-end' }}>
           <Button
             fullWidth
             variant="contained"
@@ -371,10 +367,22 @@ return (
           >
             Save Purchase
           </Button>
-        </Grid>
-      </Grid>
-    </Paper>
-  </Box>
+        </div>
+      </div>
+    </div>
+
+    {/* Snackbar for notifications */}
+    <Snackbar
+      open={snackbar.open}
+      autoHideDuration={6000}
+      onClose={() => setSnackbar({ ...snackbar, open: false })}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+    >
+      <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
+        {snackbar.message}
+      </Alert>
+    </Snackbar>
+  </div>
 );
 
 };

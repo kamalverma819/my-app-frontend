@@ -3,7 +3,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, TextField, Stack
 } from "@mui/material";
-import axios from "axios";
+import api from "../../api/client";
 
 const ItemForm = ({ item, onClose, onSaved }) => {
   const [formData, setFormData] = useState({
@@ -31,16 +31,13 @@ const ItemForm = ({ item, onClose, onSaved }) => {
 
   const handleSubmit = async () => {
     try {
-      const BASE_URL = process.env.REACT_APP_API_BASE_URL;
-
 if (item) {
-  await axios.put(`${BASE_URL}/items/${item.id}`, formData);
+  await api.put(`/api/items/${item.id}`, formData);
 } else {
-  await axios.post(`${BASE_URL}/items`, formData);
+  await api.post("/api/items", formData);
 }
       onSaved();
     } catch (err) {
-      console.error("Save failed", err);
       alert(err.response?.data || "Failed to save item");
     }
   };

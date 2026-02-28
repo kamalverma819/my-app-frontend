@@ -4,7 +4,7 @@ import {
   IconButton, TextField, Select, MenuItem
 } from '@mui/material';
 import { Visibility as VisibilityIcon } from '@mui/icons-material';
-import axios from 'axios';
+import api, { BASE_URL } from "../api/client";
 import SalesForm from '../components/sales/SalesForm';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { Menu} from '@mui/material';
@@ -24,7 +24,6 @@ const Sales = () => {
   const [showForm, setShowForm] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewFreight, setViewFreight] = useState(0);
-  const BASE_URL = process.env.REACT_APP_API_BASE_URL;
   const [editSale, setEditSale] = useState(null);
 
   const [anchorEls, setAnchorEls] = useState({});
@@ -38,27 +37,24 @@ const handleMenuClose = (index) => {
 };
 
 const handleDownload = (sale) => {
-  console.log("Download", sale);
   handleMenuClose(sale.id);
 };
 
 const handleEdit = (sale) => {
-  console.log("Edit:---", sale);
   handleMenuClose(sale.id);
 };
 
 const handleDelete = (id) => {
-  console.log("Delete", id);
   handleMenuClose(id);
 };
 
 
   const fetchSales = async () => {
     try {
-const res = await axios.get(`${BASE_URL}/sales`);
+const res = await api.get("/api/sales");
       setSales(res.data);
     } catch (err) {
-      console.error('Error fetching sales:', err);
+      // Error fetching sales
     }
   };
 
@@ -74,13 +70,12 @@ const res = await axios.get(`${BASE_URL}/sales`);
 
   const handleStatusChange = async (id, newStatus) => {
     try {
-await axios.put(`${BASE_URL}/sales/${id}/status`, { status: newStatus });
+await api.put(`/api/sales/${id}/status`, { status: newStatus });
       setSales((prevSales) =>
         prevSales.map(s => (s.id === id ? { ...s, status: newStatus } : s))
       );
     } catch (err) {
-      console.error('Error updating status:', err);
-      alert('Failed to update status.');
+      // Error updating status
     }
   };
 
@@ -275,7 +270,7 @@ await axios.put(`${BASE_URL}/sales/${id}/status`, { status: newStatus });
   onClose={() => handleMenuClose(idx)}
 >
   <MenuItem onClick={() => handleDownload(sale)}>Download</MenuItem>
-  <MenuItem onClick={() => { console.log('Editing sale:', sale); setEditSale(sale); setShowForm(true); handleMenuClose(idx) }}>Edit</MenuItem>
+  <MenuItem onClick={() => { setEditSale(sale); setShowForm(true); handleMenuClose(idx) }}>Edit</MenuItem>
   <MenuItem onClick={() => handleDelete(sale.id)}>Delete</MenuItem>
 </Menu>
 
@@ -399,7 +394,7 @@ await axios.put(`${BASE_URL}/sales/${id}/status`, { status: newStatus });
             <TextField
               label="From Date"
               type="date"
-              InputLabelProps={{ shrink: true }}
+              slotProps={{ inputLabel: { shrink: true } }}
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
               fullWidth
@@ -408,7 +403,7 @@ await axios.put(`${BASE_URL}/sales/${id}/status`, { status: newStatus });
             <TextField
               label="To Date"
               type="date"
-              InputLabelProps={{ shrink: true }}
+              slotProps={{ inputLabel: { shrink: true } }}
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
               fullWidth
@@ -424,13 +419,16 @@ await axios.put(`${BASE_URL}/sales/${id}/status`, { status: newStatus });
                 }
 
                 try {
-                  let url = BASE_URL + "/sales/download-report";
+                  let url = BASE_URL + "/api/sales/download-report";
                   if (!downloadAll) {
                     url += `?from=${fromDate}&to=${toDate}`;
                   }
 
                   const res = await fetch(url, {
                     method: 'GET',
+                    headers: {
+                      Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+                    },
                   });
 
                   if (!res.ok) {
@@ -449,7 +447,6 @@ await axios.put(`${BASE_URL}/sales/${id}/status`, { status: newStatus });
 
                   setShowDownloadDialog(false);
                 } catch (err) {
-                  console.error("Error downloading report:", err);
                   alert("Failed to download report");
                 }
               }}

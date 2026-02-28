@@ -1,16 +1,14 @@
 // src/components/sales/SalesForm.js
 import React, { useState, useEffect } from 'react';
 import {
-  Box, TextField, Typography, Button, Stack, IconButton, MenuItem, Dialog, DialogTitle, DialogContent, Autocomplete,
-  Divider,
-  Paper
+  TextField, Button, IconButton, MenuItem, Dialog, DialogTitle, DialogContent, Autocomplete,
+  Snackbar, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow
 } from '@mui/material';
 import { AddCircle, RemoveCircle } from '@mui/icons-material';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import { autoTable } from 'jspdf-autotable';
-import axios from 'axios';
-import { Grid } from '@mui/material';
+import api from "../../api/client";
 
 
 const initialItem = { name: '', hsnCode: '', quantity: 1, price: 0, gstRate: 18, stock: 0, discount: 0 };
@@ -34,89 +32,92 @@ const COMPANY_INFO = {
 };
 
 const SalesForm = ({ onSaved, editData = null }) => {
- const [invoiceNo, setInvoiceNo] = useState(editData?.invoiceNo || '');
-const [invoiceDate, setInvoiceDate] = useState(editData?.invoiceDate || new Date().toISOString().split('T')[0]);
-const [customer, setCustomer] = useState({name: editData?.customerName || '',gstin: editData?.gstin || ''});
+  const [invoiceNo, setInvoiceNo] = useState(editData?.invoiceNo || '');
+  const [invoiceDate, setInvoiceDate] = useState(editData?.invoiceDate || new Date().toISOString().split('T')[0]);
+  const [customer, setCustomer] = useState({ name: editData?.customerName || '', gstin: editData?.gstin || '' });
   const [customers, setCustomers] = useState([]);
-const [items, setItems] = useState(editData?.items || [{ ...initialItem }]);
+  const [items, setItems] = useState(editData?.items || [{ ...initialItem }]);
   const [itemOptions, setItemOptions] = useState([]);
   const [showDownloadOptions, setShowDownloadOptions] = useState(false);
-const [freight, setFreight] = useState(editData?.freight || 0);
+  const [freight, setFreight] = useState(editData?.freight || 0);
   const [poNo, setPoNo] = useState(editData?.poNo || '');
-const [poDate, setPoDate] = useState(editData?.poDate || new Date().toISOString().split('T')[0]);
+  const [poDate, setPoDate] = useState(editData?.poDate || new Date().toISOString().split('T')[0]);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-
-  const BASE_URL = process.env.REACT_APP_API_BASE_URL;
   useEffect(() => {
-axios.get(`${BASE_URL}/customers`).then(res => setCustomers(res.data));
-axios.get(`${BASE_URL}/items`).then(res => {
-    const fetchedItems = res.data;
-    setItemOptions(fetchedItems);
+    const fetchData = async () => {
+      try {
+        const [customersRes, itemsRes] = await Promise.all([
+          api.get("/api/customers"),
+          api.get("/api/items")
+        ]);
+        setCustomers(customersRes.data);
+        const fetchedItems = itemsRes.data;
+        setItemOptions(fetchedItems);
 
-    // If editing, enrich each item with stock and other properties
-    if (editData?.items) {
-      const enrichedItems = editData.items.map(editedItem => {
-        const matched = fetchedItems.find(i => i.name === editedItem.name);
-        return {
-          ...editedItem,
-          itemId: matched?.id || editedItem.itemId || '',
-          hsnCode: matched?.hsnCode || editedItem.hsnCode || '',
-          price: editedItem.price,
-          discount: editedItem.discount || matched?.discount || 0,
-          gstRate: editedItem.gstRate || matched?.gstRate || 18,
-          originalQuantity: matched?.stock ?? 0, // ✅ important line
-        };
-      });
-      setItems(enrichedItems);
+        // If editing, enrich each item with stock and other properties
+        if (editData?.items) {
+          const enrichedItems = editData.items.map(editedItem => {
+            const matched = fetchedItems.find(i => i.name === editedItem.name);
+            return {
+              ...editedItem,
+              itemId: matched?.id || editedItem.itemId || '',
+              hsnCode: matched?.hsnCode || editedItem.hsnCode || '',
+              price: editedItem.price,
+              discount: editedItem.discount || matched?.discount || 0,
+              gstRate: editedItem.gstRate || matched?.gstRate || 18,
+              originalQuantity: matched?.stock ?? 0,
+            };
+          });
+          setItems(enrichedItems);
+        }
+      } catch (err) {
+        setSnackbar({ open: true, message: 'Failed to fetch data', severity: 'error' });
+      }
+    };
+    fetchData();
+  }, [editData]);
+
+  const convertNumberToWords = (amount) => {
+    const ones = [
+      '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+      'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
+      'Seventeen', 'Eighteen', 'Nineteen'
+    ];
+    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+    const numToWords = (n) => {
+      if (typeof n !== 'number' || !isFinite(n)) return '';
+      if (n === 0) return 'Zero';
+
+      if (n < 20) return ones[n];
+      if (n < 100) {
+        return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '');
+      }
+      if (n < 1000) {
+        return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' and ' + numToWords(n % 100) : '');
+      }
+      if (n < 100000) {
+        return numToWords(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 ? ' ' + numToWords(n % 1000) : '');
+      }
+      if (n < 10000000) {
+        return numToWords(Math.floor(n / 100000)) + ' Lakh' + (n % 100000 ? ' ' + numToWords(n % 100000) : '');
+      }
+      return numToWords(Math.floor(n / 10000000)) + ' Crore' + (n % 10000000 ? ' ' + numToWords(n % 10000000) : '');
+    };
+
+    const rupees = Math.floor(amount);
+    const paise = Math.round((amount - rupees) * 100);
+
+    let result = 'Rupees ';
+    result += rupees === 0 ? 'Zero' : numToWords(rupees);
+    if (paise > 0) {
+      result += ' and ' + numToWords(paise) + ' Paise';
     }
-  });
-  axios.get(`${BASE_URL}/sales`).then(res => {
-  const count = res.data.length + 1;
-  const num = count.toString().padStart(3, '0');
-});
-  }, []);
+    result += ' Only';
 
-  function convertNumberToWords(amount) {
-  const ones = [
-    '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
-    'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
-    'Seventeen', 'Eighteen', 'Nineteen'
-  ];
-  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-
-  function numToWords(n) {
-    // Ensure n is a number and finite
-    if (typeof n !== 'number' || !isFinite(n)) return '';
-    if (n === 0) return 'Zero';
-
-    if (n < 20) return ones[n];
-    if (n < 100) {
-      return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '');
-    }
-    if (n < 1000) {
-      return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' and ' + numToWords(n % 100) : '');
-    }
-    if (n < 100000) {
-      return numToWords(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 ? ' ' + numToWords(n % 1000) : '');
-    }
-    if (n < 10000000) {
-      return numToWords(Math.floor(n / 100000)) + ' Lakh' + (n % 100000 ? ' ' + numToWords(n % 100000) : '');
-    }
-    return numToWords(Math.floor(n / 10000000)) + ' Crore' + (n % 10000000 ? ' ' + numToWords(n % 10000000) : '');
-  }
-
-  const rupees = Math.floor(amount);
-  const paise = Math.round((amount - rupees) * 100);
-
-  let result = 'Rupees ';
-  result += rupees === 0 ? 'Zero' : numToWords(rupees);
-  if (paise > 0) {
-    result += ' and ' + numToWords(paise) + ' Paise';
-  }
-  result += ' Only';
-
-  return result;
-}
+    return result;
+  };
 
 
 
@@ -154,7 +155,7 @@ axios.get(`${BASE_URL}/items`).then(res => {
       const quantity = parseInt(value) || 0;
       const availableStock = updated[idx].stock;
       if (quantity > availableStock) {
-        alert(`Quantity exceeds available stock (${availableStock})`);
+        setSnackbar({ open: true, message: `Quantity exceeds available stock (${availableStock})`, severity: 'error' });
         return;
       }
       updated[idx].quantity = quantity;
@@ -226,45 +227,46 @@ axios.get(`${BASE_URL}/items`).then(res => {
   const gst = calculateGST();
 
 
-const handleSave = async () => {
-  try {
-    const gstValues = calculateGST();
-    const payload = {
-      invoiceNo,
-      invoiceDate,
-      customerName: customer.name,
-      gstin: customer.gstin,
-      items,
-      subtotal: calculateSubtotal(),
-      cgst: gstValues.cgst,
-      sgst: gstValues.sgst,
-      igst: gstValues.igst,
-      freight,
-      total: calculateTotal(),
-      poNo,
-      poDate,
-      status: editData?.status || "under-process"
-    };
+  const handleSave = async () => {
+    try {
+      const gstValues = calculateGST();
+      const payload = {
+        invoiceNo,
+        invoiceDate,
+        customerName: customer.name,
+        gstin: customer.gstin,
+        items,
+        subtotal: calculateSubtotal(),
+        cgst: gstValues.cgst,
+        sgst: gstValues.sgst,
+        igst: gstValues.igst,
+        freight,
+        total: calculateTotal(),
+        poNo,
+        poDate,
+        status: editData?.status || "under-process"
+      };
 
-    if (editData && editData.id) {
-      await axios.put(`${BASE_URL}/sales/${editData.id}`, payload);
-    } else {
-      await axios.post(`${BASE_URL}/sales`, payload);
+      if (editData && editData.id) {
+        // eslint-disable-next-line no-undef -- use api from import
+        await api.put(`/api/sales/${editData.id}`, payload);
+      } else {
+        // eslint-disable-next-line no-undef -- use api from import
+        await api.post("/api/sales", payload);
+      }
+
+      setSnackbar({ open: true, message: 'Saved successfully', severity: 'success' });
+      onSaved();
+    } catch (err) {
+      setSnackbar({ open: true, message: 'Failed to save invoice', severity: 'error' });
     }
+  };
 
-    alert('Saved successfully');
-    onSaved();
-  } catch (err) {
-    console.error('Save error:', err);
-    alert('Failed to save invoice');
-  }
-};
-
-const handleDownloadPDF = () => {
-  if (!invoiceNo || items.length === 0) {
-    alert("Invoice content is empty or not rendered yet.");
-    return;
-  }
+  const handleDownloadPDF = () => {
+    if (!invoiceNo || items.length === 0) {
+      setSnackbar({ open: true, message: 'Invoice content is empty or not rendered yet', severity: 'warning' });
+      return;
+    }
 
   const doc = new jsPDF('p', 'mm', 'a4');
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -531,21 +533,19 @@ const handleDownloadPDF = () => {
     doc.text(line, pageWidth / 2, footerY + (index * 4), { align: 'center' });
   });
 
-  // Save PDF
-  doc.save(`${invoiceNo}.pdf`);
-  setShowDownloadOptions(false);
-};
+    // Save PDF
+    doc.save(`${invoiceNo}.pdf`);
+    setShowDownloadOptions(false);
+  };
 
-function amountInWords(amount) {
-  // You likely already have this logic.
-  // If not, I can provide a full rupee+paise converter
-  return "Rupees One Thousand Two Hundred Thirty Only"; // example
-}
+  const amountInWords = (amount) => {
+    return convertNumberToWords(amount);
+  };
 
 
 
 
- const handleDownloadExcel = () => {
+  const handleDownloadExcel = () => {
   const wsData = [];
 
   // Company Info
@@ -614,37 +614,36 @@ function amountInWords(amount) {
 
 
   return (
-    <Box>
-
-      <Paper elevation={4} sx={{ p: 4, borderRadius: 3, backgroundColor: '#f9fafc' }}>
+    <div>
+      <div style={{ padding: '32px', borderRadius: '12px', backgroundColor: '#f9fafc', boxShadow: '0px 2px 8px rgba(0,0,0,0.1)' }}>
         {/* Header */}
-        <Typography variant="h5" fontWeight="bold" gutterBottom>
+        <h2 style={{ fontWeight: 'bold', marginBottom: '16px' }}>
           Generate Invoice
-        </Typography>
+        </h2>
 
         {/* Invoice & Customer Info */}
-        <Grid container spacing={3}>
-          <Grid item xs={12} sm={6}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '24px' }}>
+          <div style={{ gridColumn: 'span 12 / span 6' }}>
             <TextField
               label="Invoice No"
               fullWidth
               value={invoiceNo}
               onChange={(e) => setInvoiceNo(e.target.value)}
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={12} sm={6}>
+          <div style={{ gridColumn: 'span 12 / span 6' }}>
             <TextField
               label="Invoice Date"
               type="date"
               fullWidth
               value={invoiceDate}
               onChange={(e) => setInvoiceDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
+              slotProps={{ inputLabel: { shrink: true } }}
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={12} sm={6}>
+          <div style={{ gridColumn: 'span 12 / span 6' }}>
             <Autocomplete
               options={customers.map(c => c.name)}
               value={customer.name}
@@ -661,45 +660,42 @@ function amountInWords(amount) {
                 }
               }}
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={12} sm={6}>
+          <div style={{ gridColumn: 'span 12 / span 6' }}>
             <TextField label="GSTIN" fullWidth value={customer.gstin} disabled />
-          </Grid>
+          </div>
 
-          <Grid item xs={12} sm={6}>
+          <div style={{ gridColumn: 'span 12 / span 6' }}>
             <TextField
               label="Buyers P.O. No."
               fullWidth
               value={poNo}
               onChange={(e) => setPoNo(e.target.value)}
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={12} sm={6}>
+          <div style={{ gridColumn: 'span 12 / span 6' }}>
             <TextField
               label="P.O. Date"
               type="date"
               fullWidth
-              InputLabelProps={{ shrink: true }}
+              slotProps={{ inputLabel: { shrink: true } }}
               value={poDate}
               onChange={(e) => setPoDate(e.target.value)}
             />
-          </Grid>
-        </Grid>
+          </div>
+        </div>
 
         {/* Items */}
-        <Typography variant="subtitle1" fontWeight="bold" mt={4} mb={1}>
+        <h3 style={{ fontWeight: 'bold', marginTop: '32px', marginBottom: '8px' }}>
           Items
-        </Typography>
+        </h3>
 
         {items.map((item, idx) => (
-          <Stack
+          <div
             key={idx}
-            direction={{ xs: 'column', sm: 'row' }}
-            spacing={2}
-            alignItems="center"
-            sx={{ mb: 2 }}
+            style={{ display: 'flex', flexDirection: 'row', gap: '16px', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap' }}
           >
             <Autocomplete
               options={getAvailableItemOptions(idx).map(i => i.name)}
@@ -739,7 +735,7 @@ function amountInWords(amount) {
             <IconButton onClick={() => handleRemoveItem(idx)} color="error">
               <RemoveCircle />
             </IconButton>
-          </Stack>
+          </div>
         ))}
 
         {/* Add Item Button */}
@@ -766,127 +762,141 @@ function amountInWords(amount) {
         />
 
         {/* Action Buttons */}
-        <Stack direction="row" spacing={2} mt={4}>
+        <div style={{ display: 'flex', flexDirection: 'row', gap: '16px', marginTop: '32px' }}>
           <Button variant="contained" color="primary" onClick={handleSave}>
             Save
           </Button>
           <Button variant="outlined" onClick={() => setShowDownloadOptions(true)}>
             Download
           </Button>
-        </Stack>
-      </Paper>
+        </div>
+      </div>
 
       {/* Preview Section */}
-      <Box id="invoice-preview" sx={{ mt: 4, px: 4, py: 3, backgroundColor: 'transparent', fontFamily: 'Poppins, sans-serif' }}>
-        <Typography variant="h5" align="center" fontWeight="bold" color="primary">{COMPANY_INFO.name}</Typography>
-        <Typography align="center">{COMPANY_INFO.address}</Typography>
-        <Typography align="center" mb={2}>GSTIN: {COMPANY_INFO.gstin} | Contact: {COMPANY_INFO.contact} | Email: {COMPANY_INFO.email}</Typography>
+      <div id="invoice-preview" style={{ marginTop: '32px', padding: '24px', backgroundColor: 'transparent', fontFamily: 'Poppins, sans-serif' }}>
+        <h3 style={{ textAlign: 'center', fontWeight: 'bold', color: '#0284c7' }}>{COMPANY_INFO.name}</h3>
+        <p style={{ textAlign: 'center' }}>{COMPANY_INFO.address}</p>
+        <p style={{ textAlign: 'center', marginBottom: '16px' }}>GSTIN: {COMPANY_INFO.gstin} | Contact: {COMPANY_INFO.contact} | Email: {COMPANY_INFO.email}</p>
 
-        <Stack direction="row" justifyContent="space-between" spacing={2} mb={2}>
-          <Box>
-            <Typography><strong>Invoice No:</strong> {invoiceNo}</Typography>
-            <Typography><strong>Date:</strong> {formatDate(invoiceDate)}</Typography>
-            <Typography><strong>Buyers P.O. No.:</strong> {poNo || '—'}</Typography>
-            <Typography><strong>P.O. Date:</strong> {formatDate(poDate) || '—'}</Typography>
-          </Box>
+        <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', gap: '16px', marginBottom: '16px' }}>
+          <div>
+            <p><strong>Invoice No:</strong> {invoiceNo}</p>
+            <p><strong>Date:</strong> {formatDate(invoiceDate)}</p>
+            <p><strong>Buyers P.O. No.:</strong> {poNo || '—'}</p>
+            <p><strong>P.O. Date:</strong> {formatDate(poDate) || '—'}</p>
+          </div>
 
-          <Box textAlign="right">
-            <Typography fontWeight="bold">Bill To:</Typography>
-            <Typography>{customer.name || '—'}</Typography>
-            <Typography>GSTIN: {customer.gstin || '—'}</Typography>
-          </Box>
-        </Stack>
+          <div style={{ textAlign: 'right' }}>
+            <p style={{ fontWeight: 'bold' }}>Bill To:</p>
+            <p>{customer.name || '—'}</p>
+            <p>GSTIN: {customer.gstin || '—'}</p>
+          </div>
+        </div>
 
         {/* Item Table */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 20 }} border="1">
-          <thead style={{ backgroundColor: '#f0f0f0' }}>
-            <tr>
-              <th style={{ padding: 8 }}>Description</th>
-              <th style={{ padding: 8 }}>HSN</th>
-              <th style={{ padding: 8, textAlign: 'right' }}>Qty</th>
-              <th style={{ padding: 8, textAlign: 'right' }}>Price</th>
-              <th style={{ padding: 8, textAlign: 'right' }}>Disc%</th>
-              <th style={{ padding: 8, textAlign: 'right' }}>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((i, idx) => (
-              <tr key={idx}>
-                <td style={{ padding: 8 }}>{i.name}</td>
-                <td style={{ padding: 8 }}>{i.hsnCode}</td>
-                <td style={{ padding: 8, textAlign: 'right' }}>{i.quantity}</td>
-                <td style={{ padding: 8, textAlign: 'right' }}>₹{i.price.toFixed(2)}</td>
-                <td style={{ padding: 8, textAlign: 'right' }}>{i.discount}%</td>
-                <td style={{ padding: 8, textAlign: 'right' }}>
-                  ₹{(i.quantity * i.price * (1 - i.discount / 100)).toFixed(2)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <TableContainer sx={{ mt: 2 }}>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ backgroundColor: '#f0f0f0' }}>
+                <TableCell>Description</TableCell>
+                <TableCell>HSN</TableCell>
+                <TableCell align="right">Qty</TableCell>
+                <TableCell align="right">Price</TableCell>
+                <TableCell align="right">Disc%</TableCell>
+                <TableCell align="right">Total</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {items.map((i, idx) => (
+                <TableRow key={idx}>
+                  <TableCell>{i.name}</TableCell>
+                  <TableCell>{i.hsnCode}</TableCell>
+                  <TableCell align="right">{i.quantity}</TableCell>
+                  <TableCell align="right">₹{i.price.toFixed(2)}</TableCell>
+                  <TableCell align="right">{i.discount}%</TableCell>
+                  <TableCell align="right">
+                    ₹{(i.quantity * i.price * (1 - i.discount / 100)).toFixed(2)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
 
         {/* Totals */}
-        <Box mt={2} display="flex" justifyContent="flex-end">
-          <Box width="300px">
-            <Stack direction="row" justifyContent="space-between"><Typography>Subtotal:</Typography><Typography>₹{calculateSubtotal().toFixed(2)}</Typography></Stack>
-            <Stack direction="row" justifyContent="space-between"><Typography>Freight:</Typography><Typography>₹{(Number(freight) || 0).toFixed(2)}</Typography></Stack>
+        <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ width: '300px' }}>
+            <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}><p>Subtotal:</p><p>₹{calculateSubtotal().toFixed(2)}</p></div>
+            <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}><p>Freight:</p><p>₹{(Number(freight) || 0).toFixed(2)}</p></div>
 
-            <Stack direction="row" justifyContent="space-between"><Typography>CGST:</Typography><Typography>₹{gst.cgst.toFixed(2)}</Typography></Stack>
-            <Stack direction="row" justifyContent="space-between"><Typography>SGST:</Typography><Typography>₹{gst.sgst.toFixed(2)}</Typography></Stack>
-            <Stack direction="row" justifyContent="space-between"><Typography>IGST:</Typography><Typography>₹{gst.igst.toFixed(2)}</Typography></Stack>
-            <hr />
-            <Stack direction="row" justifyContent="space-between" fontWeight="bold">
-              <Typography>Grand Total:</Typography>
-              <Typography>₹{calculateTotal().toFixed(2)}</Typography>
-            </Stack>
-          </Box>
-        </Box>
+            <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}><p>CGST:</p><p>₹{gst.cgst.toFixed(2)}</p></div>
+            <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}><p>SGST:</p><p>₹{gst.sgst.toFixed(2)}</p></div>
+            <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}><p>IGST:</p><p>₹{gst.igst.toFixed(2)}</p></div>
+            <hr style={{ margin: '8px 0' }} />
+            <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
+              <p style={{ fontWeight: 'bold' }}>Grand Total:</p>
+              <p style={{ fontWeight: 'bold' }}>₹{calculateTotal().toFixed(2)}</p>
+            </div>
+          </div>
+        </div>
 
-        <Typography mt={2} fontWeight="bold">
+        <p style={{ marginTop: '16px', fontWeight: 'bold' }}>
           Amount in Words: <span style={{ fontWeight: 'normal' }}>{convertNumberToWords(calculateTotal())}</span>
-        </Typography>
+        </p>
 
         {/* Bank Info */}
-        <Box mt={3}>
-          <Typography variant="subtitle1" fontWeight="bold" gutterBottom>Company's Bank Details:</Typography>
-          <Typography>Bank Name: {COMPANY_INFO.bank.name}</Typography>
-          <Typography>Branch Name: {COMPANY_INFO.bank.branch}</Typography>
-          <Typography>Current A/C No.: {COMPANY_INFO.bank.account}</Typography>
-          <Typography>IFSC Code: {COMPANY_INFO.bank.ifsc}</Typography>
-          <Typography>Branch Code: {COMPANY_INFO.bank.branchCode}</Typography>
-        </Box>
+        <div style={{ marginTop: '24px' }}>
+          <h4 style={{ fontWeight: 'bold', marginBottom: '8px' }}>Company's Bank Details:</h4>
+          <p>Bank Name: {COMPANY_INFO.bank.name}</p>
+          <p>Branch Name: {COMPANY_INFO.bank.branch}</p>
+          <p>Current A/C No.: {COMPANY_INFO.bank.account}</p>
+          <p>IFSC Code: {COMPANY_INFO.bank.ifsc}</p>
+          <p>Branch Code: {COMPANY_INFO.bank.branchCode}</p>
+        </div>
 
         {/* Declaration */}
-        <Box mt={3}>
-          <Typography>{COMPANY_INFO.declaration}</Typography>
-        </Box>
+        <div style={{ marginTop: '24px' }}>
+          <p>{COMPANY_INFO.declaration}</p>
+        </div>
 
         {/* Signature */}
-        <Box mt={4} textAlign="right">
-          <Typography fontWeight="bold">For {COMPANY_INFO.name}</Typography>
-          <Typography>Authorised signatory</Typography>
-        </Box>
+        <div style={{ marginTop: '32px', textAlign: 'right' }}>
+          <p style={{ fontWeight: 'bold' }}>For {COMPANY_INFO.name}</p>
+          <p>Authorised signatory</p>
+        </div>
 
         {/* Centered Footer */}
-        <Box mt={5} textAlign="center">
-          <Typography variant="body2" sx={{ whiteSpace: 'pre-line', color: 'gray' }}>
+        <div style={{ marginTop: '40px', textAlign: 'center' }}>
+          <p style={{ whiteSpace: 'pre-line', color: 'gray', fontSize: '0.875rem' }}>
             {COMPANY_INFO.footer}
-          </Typography>
-        </Box>
+          </p>
+        </div>
 
-      </Box>
+      </div>
 
       {/* Download Options Dialog */}
       <Dialog open={showDownloadOptions} onClose={() => setShowDownloadOptions(false)}>
         <DialogTitle>Select Export Format</DialogTitle>
         <DialogContent>
-          <Stack spacing={2} mt={2}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
             <Button variant="contained" onClick={handleDownloadPDF}>Download PDF</Button>
             <Button variant="outlined" onClick={handleDownloadExcel}>Download Excel</Button>
-          </Stack>
+          </div>
         </DialogContent>
       </Dialog>
-    </Box>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </div>
   );
 };
 

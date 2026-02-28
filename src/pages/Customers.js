@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
+import api from "../api/client";
 import CloseIcon from '@mui/icons-material/Close';
 import {
-  Box, Button, Typography, TextField, Snackbar, Alert, Modal, IconButton,
+  Button, TextField, Snackbar, Alert, Modal, IconButton,
   Dialog, DialogActions, DialogContent, DialogTitle, Tooltip, LinearProgress
 } from '@mui/material';
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
@@ -45,16 +45,13 @@ const Customers = () => {
   const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
 
 
-const BASE_URL = process.env.REACT_APP_API_BASE_URL;
-
   const fetchCustomers = async () => {
     setLoading(true);
     try {
-const res = await axios.get(`${BASE_URL}/customers`); 
+const res = await api.get("/api/customers"); 
      setCustomers(res.data);
     } catch (err) {
       showSnackbar('Failed to fetch customers', 'error');
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -105,17 +102,16 @@ const res = await axios.get(`${BASE_URL}/customers`);
 
     try {
       if (editingId) {
-await axios.put(`${process.env.REACT_APP_API_BASE_URL}/customers/${editingId}`, formData);
+await api.put(`/api/customers/${editingId}`, formData);
         showSnackbar('Customer updated successfully', 'success');
       } else {
-await axios.post(`${process.env.REACT_APP_API_BASE_URL}/customers`, formData);
+await api.post("/api/customers", formData);
         showSnackbar('Customer added successfully', 'success');
       }
       setOpenModal(false);
       fetchCustomers();
     } catch (err) {
       showSnackbar(err.response?.data?.message || 'Operation failed', 'error');
-      console.error(err);
     }
   };
 
@@ -126,12 +122,11 @@ await axios.post(`${process.env.REACT_APP_API_BASE_URL}/customers`, formData);
 
   const handleDelete = async () => {
     try {
-await axios.delete(`${BASE_URL}/customers/${deleteId}`);
+await api.delete(`/api/customers/${deleteId}`);
       showSnackbar('Customer deleted successfully', 'success');
       fetchCustomers();
     } catch (err) {
       showSnackbar('Failed to delete customer', 'error');
-      console.error(err);
     } finally {
       setOpenDeleteDialog(false);
     }
@@ -156,15 +151,15 @@ await axios.delete(`${BASE_URL}/customers/${deleteId}`);
     headerName: 'GSTIN',
     width: 200,
     renderCell: (params) => (
-      <Typography
-        sx={{
+      <span
+        style={{
           fontSize: "0.85rem",
           fontFamily: "monospace",
           color: "#333",
         }}
       >
         {params.value}
-      </Typography>
+      </span>
     )
   },
   { 
@@ -208,12 +203,12 @@ await axios.delete(`${BASE_URL}/customers/${deleteId}`);
 
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-<Typography variant="h4" fontWeight="bold" gutterBottom>
+    <div style={{ padding: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+<h1 style={{ fontWeight: 'bold', marginBottom: '16px', margin: 0 }}>
   🧑‍💼 Customers
-</Typography>
-        <Box sx={{ display: 'flex', gap: 1 }}>
+</h1>
+        <div style={{ display: 'flex', gap: '8px' }}>
   <Button
     variant="outlined"
     startIcon={<RefreshIcon />}
@@ -223,6 +218,7 @@ await axios.delete(`${BASE_URL}/customers/${deleteId}`);
               textTransform: "none",
               borderRadius: 2,
               backgroundColor: "#2980b9",
+              color: "#fff",
               "&:hover": { backgroundColor: "#2471a3" }
             }}
   >
@@ -242,13 +238,13 @@ await axios.delete(`${BASE_URL}/customers/${deleteId}`);
   >
     Add Customer
   </Button>
-</Box>
+</div>
 
-      </Box>
+      </div>
 
       {loading && <LinearProgress />}
 
-      <Box sx={{ height: 600, width: '100%', mt: 2 }}>
+      <div style={{ height: '600px', width: '100%', marginTop: '16px' }}>
         <DataGrid
   rows={customers}
   columns={columns}
@@ -282,36 +278,35 @@ await axios.delete(`${BASE_URL}/customers/${deleteId}`);
   }}
 />
 
-      </Box>
+      </div>
 
       <Modal open={openModal} onClose={() => setOpenModal(false)}>
-        <Box
-          component="form"
-          onSubmit={handleSubmit}
-          sx={{
+        <div
+          style={{
             position: 'absolute',
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            width: 400,
-            bgcolor: 'background.paper',
-            boxShadow: 24,
-            p: 4,
-            borderRadius: 2,
+            width: '400px',
+            backgroundColor: 'white',
+            boxShadow: '0px 4px 20px rgba(0,0,0,0.15)',
+            padding: '32px',
+            borderRadius: '8px',
             outline: 'none'
           }}
         >
-          <IconButton
-            aria-label="close"
-            onClick={() => setOpenModal(false)}
-            sx={{ position: 'absolute', right: 8, top: 8, color: 'gray' }}
-          >
-            <CloseIcon />
-          </IconButton>
+          <form onSubmit={handleSubmit}>
+            <IconButton
+              aria-label="close"
+              onClick={() => setOpenModal(false)}
+              style={{ position: 'absolute', right: 8, top: 8, color: 'gray' }}
+            >
+              <CloseIcon />
+            </IconButton>
 
-          <Typography variant="h6" gutterBottom>
-            {editingId ? 'Edit Customer' : 'Add Customer'}
-          </Typography>
+            <h2 style={{ marginBottom: '16px', marginTop: 0 }}>
+              {editingId ? 'Edit Customer' : 'Add Customer'}
+            </h2>
 
           <TextField
             margin="normal"
@@ -358,16 +353,17 @@ await axios.delete(`${BASE_URL}/customers/${deleteId}`);
             onChange={handleChange}
           />
 
-          <Button type="submit" fullWidth variant="contained" sx={{ mt: 3 }}>
+          <Button type="submit" fullWidth variant="contained" style={{ marginTop: '24px' }}>
             {editingId ? 'Update Customer' : 'Add Customer'}
           </Button>
-        </Box>
+          </form>
+        </div>
       </Modal>
 
       <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
-          <Typography>Are you sure you want to delete this customer?</Typography>
+          <p>Are you sure you want to delete this customer?</p>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDeleteDialog(false)}>Cancel</Button>
@@ -379,11 +375,11 @@ await axios.delete(`${BASE_URL}/customers/${deleteId}`);
         <DialogTitle>Customer Details</DialogTitle>
         <DialogContent>
           {selectedCustomer && (
-            <Box sx={{ mt: 2 }}>
-              <Typography><strong>Name:</strong> {selectedCustomer.name}</Typography>
-              <Typography><strong>Contact:</strong> {selectedCustomer.contact}</Typography>
-              <Typography><strong>Address:</strong> {selectedCustomer.address}</Typography>
-            </Box>
+            <div style={{ marginTop: '16px' }}>
+              <p><strong>Name:</strong> {selectedCustomer.name}</p>
+              <p><strong>Contact:</strong> {selectedCustomer.contact}</p>
+              <p><strong>Address:</strong> {selectedCustomer.address}</p>
+            </div>
           )}
         </DialogContent>
         <DialogActions>
@@ -404,7 +400,7 @@ await axios.delete(`${BASE_URL}/customers/${deleteId}`);
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Box>
+    </div>
   );
 };
 

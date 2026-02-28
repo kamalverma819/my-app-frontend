@@ -46,7 +46,7 @@ const theme = createTheme({
   },
 });
 
-function App() {
+const App = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -61,9 +61,9 @@ function App() {
 
   // Check token
   useEffect(() => {
-     const token = localStorage.getItem("authToken");
-  setIsAuthenticated(!!token);
-  setLoading(false); // done checking
+    const token = localStorage.getItem("authToken");
+    setIsAuthenticated(!!token);
+    setLoading(false);
   }, []);
 
   const handleLogin = (token) => {
@@ -77,8 +77,8 @@ function App() {
   };
 
   if (loading) {
-  return null;
-}
+    return null;
+  }
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -139,6 +139,6 @@ function App() {
       </Router>
     </ThemeProvider>
   );
-}
+};
 
 export default App;

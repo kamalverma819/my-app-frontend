@@ -1,32 +1,29 @@
 import {
-  Box,
-  Typography,
   Button,
-  Stack,
   TextField,
-  Paper,
-  Divider,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import React, { useState, useEffect } from "react";
 import ItemForm from "../components/items/ItemForm";
 import ItemList from "../components/items/ItemList";
-import axios from "axios";
+import api from "../api/client";
 
 const Items = () => {
   const [openForm, setOpenForm] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [items, setItems] = useState([]);
-  const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
-const fetchItems = () => {
-  axios
-    .get(`${BASE_URL}/items`)
-    .then((res) => setItems(res.data))
-    .catch((err) => console.error("Fetch error", err));
-};
+  const fetchItems = async () => {
+    try {
+      // eslint-disable-next-line no-undef -- api is imported from ../api/client
+      const res = await api.get("/api/items");
+      setItems(res.data);
+    } catch (err) {
+      // Error fetching items
+    }
+  };
 
 
   useEffect(() => {
@@ -34,30 +31,34 @@ const fetchItems = () => {
   }, []);
 
   return (
-    <Box sx={{ p: 4 }}>
-      <Paper
-        elevation={4}
-        sx={{
-          p: 3,
-          borderRadius: 3,
-          mb: 4,
+    <div style={{ padding: '32px' }}>
+      <div
+        style={{
+          padding: '24px',
+          borderRadius: '12px',
+          marginBottom: '32px',
           background: "#f5f7fa",
+          boxShadow: '0px 2px 8px rgba(0,0,0,0.1)'
         }}
       >
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          justifyContent="space-between"
-          alignItems={{ xs: "flex-start", sm: "center" }}
-          spacing={2}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '16px',
+            flexWrap: 'wrap'
+          }}
         >
-          <Stack direction="row" alignItems="center" spacing={1}>
+          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
             <InventoryIcon color="primary" fontSize="large" />
-            <Typography variant="h5" fontWeight="bold">
+            <h2 style={{ fontWeight: 'bold', margin: 0 }}>
               Inventory Items
-            </Typography>
-          </Stack>
+            </h2>
+          </div>
 
-          <Stack direction="row" spacing={2}>
+          <div style={{ display: 'flex', flexDirection: 'row', gap: '16px' }}>
             <TextField
               size="small"
               variant="outlined"
@@ -77,9 +78,9 @@ const fetchItems = () => {
             >
               Add Item
             </Button>
-          </Stack>
-        </Stack>
-      </Paper>
+          </div>
+        </div>
+      </div>
 
       {openForm && (
         <ItemForm
@@ -101,7 +102,7 @@ const fetchItems = () => {
           setOpenForm(true);
         }}
       />
-    </Box>
+    </div>
   );
 };
 

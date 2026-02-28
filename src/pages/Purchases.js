@@ -12,7 +12,7 @@ import {
   TextField
 } from '@mui/material';
 import { Visibility as VisibilityIcon } from '@mui/icons-material';
-import axios from 'axios';
+import api, { BASE_URL } from "../api/client";
 import PurchaseForm from '../components/purchases/PurchaseForm';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
@@ -28,15 +28,14 @@ const Purchases = () => {
   const [toDate, setToDate] = useState('');
   const [downloadAll, setDownloadAll] = useState(false);
   const [viewFreight, setViewFreight] = useState(0);
-  const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 
   const fetchPurchases = async () => {
     try {
-  const res = await axios.get(`${BASE_URL}/purchases`);
+  const res = await api.get("/api/purchases");
       setPurchases(res.data);
     } catch (err) {
-      console.error('Error fetching purchases:', err);
+      // Error fetching purchases
     }
   };
 
@@ -279,7 +278,7 @@ const Purchases = () => {
             <TextField
               label="From Date"
               type="date"
-              InputLabelProps={{ shrink: true }}
+              slotProps={{ inputLabel: { shrink: true } }}
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
               fullWidth
@@ -288,7 +287,7 @@ const Purchases = () => {
             <TextField
               label="To Date"
               type="date"
-              InputLabelProps={{ shrink: true }}
+              slotProps={{ inputLabel: { shrink: true } }}
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
               fullWidth
@@ -304,13 +303,16 @@ const Purchases = () => {
                 }
 
                 try {
-                  let url = BASE_URL+ "/purchases/download-report";
+                  let url = BASE_URL + "/api/purchases/download-report";
                   if (!downloadAll) {
                     url += `?from=${fromDate}&to=${toDate}`;
                   }
 
                   const res = await fetch(url, {
                     method: 'GET',
+                    headers: {
+                      Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+                    },
                   });
 
                   if (!res.ok) {
@@ -329,7 +331,6 @@ const Purchases = () => {
 
                   setShowDownloadDialog(false);
                 } catch (err) {
-                  console.error("Error downloading report:", err);
                   alert("Failed to download report");
                 }
               }}

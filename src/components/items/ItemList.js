@@ -9,19 +9,16 @@ import {
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
-import axios from "axios";
+import api from "../../api/client";
 
 const ItemList = ({ items, searchTerm, onEdit, fetchItems }) => {
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this item?")) {
       try {
-const BASE_URL = process.env.REACT_APP_API_BASE_URL;
-
-// Then use:
-await axios.delete(`${BASE_URL}/items/${id}`);
+        await api.delete(`/api/items/${id}`);
         fetchItems(); // Refresh after delete
       } catch (err) {
-        console.error("Delete failed", err);
+        // Delete failed
       }
     }
   };

@@ -8,7 +8,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import axios from 'axios';
+import api from "../api/client";
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer
 } from 'recharts';
@@ -24,7 +24,6 @@ const ProfitList = () => {
 const [showProfit, setShowProfit] = useState(false);
 const [editCommission, setEditCommission] = useState({});
 const [isSaving, setIsSaving] = useState(false);
-  const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 
 const handleSaveCommission = async (item) => {
@@ -40,7 +39,7 @@ const handleSaveCommission = async (item) => {
     }
 
     // Send to new endpoint that updates commission on Item
-await axios.put(`${BASE_URL}/items/${item.itemId}/commission`, {
+await api.put(`/api/items/${item.itemId}/commission`, {
   commission: newCommission,
   isPercent: isPercent
 });
@@ -48,7 +47,6 @@ await axios.put(`${BASE_URL}/items/${item.itemId}/commission`, {
 
     fetchProfits(); // Refresh profit list
   } catch (err) {
-    console.error(err);
     alert("Failed to update commission");
   } finally {
     setIsSaving(false);
@@ -62,10 +60,10 @@ await axios.put(`${BASE_URL}/items/${item.itemId}/commission`, {
       const params = {};
       if (fromDate) params.from = fromDate.toISOString().split('T')[0];
       if (toDate) params.to = toDate.toISOString().split('T')[0];
-const res = await axios.get(`${BASE_URL}/sales/profit/all`, { params });
+const res = await api.get("/api/sales/profit/all", { params });
       setProfits(res.data);
     } catch (err) {
-      console.error(err);
+      // Error fetching profits
     }
   };
 

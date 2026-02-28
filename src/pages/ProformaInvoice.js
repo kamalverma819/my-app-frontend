@@ -4,7 +4,7 @@ import {
   IconButton, TextField, Select, MenuItem
 } from '@mui/material';
 import { Visibility as VisibilityIcon } from '@mui/icons-material';
-import axios from 'axios';
+import api from "../api/client";
 import ProformaInvoiceForm from '../components/proforma/ProformaInvoiceForm';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { Menu} from '@mui/material';
@@ -20,7 +20,6 @@ const ProformaInvoice = () => {
   const [showForm, setShowForm] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewFreight, setViewFreight] = useState(0);
-  const BASE_URL = process.env.REACT_APP_API_BASE_URL;
   const [editInvoice, setEditInvoice] = useState(null);
 
   const [anchorEls, setAnchorEls] = useState({});
@@ -34,27 +33,24 @@ const handleMenuClose = (index) => {
 };
 
 const handleDownload = (invoice) => {
-  console.log("Download", invoice);
   handleMenuClose(invoice.id);
 };
 
 const handleEdit = (invoice) => {
-  console.log("Edit:---", invoice);
   handleMenuClose(invoice.id);
 };
 
 const handleDelete = (id) => {
-  console.log("Delete", id);
   handleMenuClose(id);
 };
 
 
   const fetchInvoices = async () => {
     try {
-const res = await axios.get(`${BASE_URL}/proforma-invoices`);
+const res = await api.get("/api/proforma-invoices");
       setInvoices(res.data);
     } catch (err) {
-      console.error('Error fetching proforma invoices:', err);
+      // Error fetching proforma invoices
     }
   };
 
@@ -70,13 +66,12 @@ const res = await axios.get(`${BASE_URL}/proforma-invoices`);
 
   const handleStatusChange = async (id, newStatus) => {
     try {
-await axios.put(`${BASE_URL}/proforma-invoices/${id}/status`, { status: newStatus });
+await api.put(`/api/proforma-invoices/${id}/status`, { status: newStatus });
       setInvoices((prevInvoices) =>
         prevInvoices.map(s => (s.id === id ? { ...s, status: newStatus } : s))
       );
     } catch (err) {
-      console.error('Error updating status:', err);
-      alert('Failed to update status.');
+      // Error updating status
     }
   };
 
@@ -255,7 +250,7 @@ await axios.put(`${BASE_URL}/proforma-invoices/${id}/status`, { status: newStatu
   onClose={() => handleMenuClose(idx)}
 >
   <MenuItem onClick={() => handleDownload(invoice)}>Download</MenuItem>
-  <MenuItem onClick={() => { console.log('Editing invoice:', invoice); setEditInvoice(invoice); setShowForm(true); handleMenuClose(idx) }}>Edit</MenuItem>
+  <MenuItem onClick={() => { setEditInvoice(invoice); setShowForm(true); handleMenuClose(idx) }}>Edit</MenuItem>
   <MenuItem onClick={() => handleDelete(invoice.id)}>Delete</MenuItem>
 </Menu>
 
